@@ -1,0 +1,5 @@
+E:\hdh_git_workspaces\nfineFramework学习\NFine\project\Database1\obj\Debug\Database1.dll
+E:\hdh_git_workspaces\nfineFramework学习\NFine\project\Database1\obj\Debug\Database1.pdb
+E:\hdh_git_workspaces\nfineFramework学习\NFine\project\Database1\bin\Debug\Database1.dacpac
+E:\hdh_git_workspaces\nfineFramework学习\NFine\project\Database1\bin\Debug\Database1.dll
+E:\hdh_git_workspaces\nfineFramework学习\NFine\project\Database1\bin\Debug\Database1.pdb

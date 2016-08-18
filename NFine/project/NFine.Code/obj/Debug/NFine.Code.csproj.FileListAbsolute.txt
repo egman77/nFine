@@ -1,0 +1,17 @@
+E:\hdh_git_workspaces\nfineFramework学习\NFine\project\NFine.Code\bin\Debug\NFine.Code.dll
+E:\hdh_git_workspaces\nfineFramework学习\NFine\project\NFine.Code\bin\Debug\NFine.Code.pdb
+E:\hdh_git_workspaces\nfineFramework学习\NFine\project\NFine.Code\bin\Debug\ICSharpCode.SharpZipLib.dll
+E:\hdh_git_workspaces\nfineFramework学习\NFine\project\NFine.Code\bin\Debug\log4net.dll
+E:\hdh_git_workspaces\nfineFramework学习\NFine\project\NFine.Code\bin\Debug\Newtonsoft.Json.dll
+E:\hdh_git_workspaces\nfineFramework学习\NFine\project\NFine.Code\bin\Debug\NPOI.dll
+E:\hdh_git_workspaces\nfineFramework学习\NFine\project\NFine.Code\bin\Debug\NPOI.OOXML.dll
+E:\hdh_git_workspaces\nfineFramework学习\NFine\project\NFine.Code\bin\Debug\NPOI.OpenXml4Net.dll
+E:\hdh_git_workspaces\nfineFramework学习\NFine\project\NFine.Code\bin\Debug\NPOI.OpenXmlFormats.dll
+E:\hdh_git_workspaces\nfineFramework学习\NFine\project\NFine.Code\bin\Debug\log4net.xml
+E:\hdh_git_workspaces\nfineFramework学习\NFine\project\NFine.Code\bin\Debug\Newtonsoft.Json.xml
+E:\hdh_git_workspaces\nfineFramework学习\NFine\project\NFine.Code\bin\Debug\NPOI.xml
+E:\hdh_git_workspaces\nfineFramework学习\NFine\project\NFine.Code\bin\Debug\NPOI.OOXML.xml
+E:\hdh_git_workspaces\nfineFramework学习\NFine\project\NFine.Code\bin\Debug\NPOI.OpenXml4Net.xml
+E:\hdh_git_workspaces\nfineFramework学习\NFine\project\NFine.Code\obj\Debug\NFine.Code.csprojResolveAssemblyReference.cache
+E:\hdh_git_workspaces\nfineFramework学习\NFine\project\NFine.Code\obj\Debug\NFine.Code.dll
+E:\hdh_git_workspaces\nfineFramework学习\NFine\project\NFine.Code\obj\Debug\NFine.Code.pdb

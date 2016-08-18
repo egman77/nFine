@@ -1,12 +1,12 @@
 ﻿CREATE TABLE [dbo].[Sys_RoleAuthorize](
-	[F_Id] [varchar](50) NOT NULL,
+	[F_Id] [nvarchar](50) NOT NULL,
 	[F_ItemType] [int] NULL,
-	[F_ItemId] [varchar](50) NULL,
+	[F_ItemId] [nvarchar](50) NULL,
 	[F_ObjectType] [int] NULL,
-	[F_ObjectId] [varchar](50) NULL,
+	[F_ObjectId] [nvarchar](50) NULL,
 	[F_SortCode] [int] NULL,
 	[F_CreatorTime] [datetime] NULL,
-	[F_CreatorUserId] [varchar](50) NULL,
+	[F_CreatorUserId] [nvarchar](50) NULL,
  CONSTRAINT [PK_SYS_ROLEAUTHORIZE] PRIMARY KEY NONCLUSTERED 
 (
 	[F_Id] ASC

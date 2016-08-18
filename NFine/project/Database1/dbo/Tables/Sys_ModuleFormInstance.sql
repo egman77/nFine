@@ -1,11 +1,11 @@
 ﻿CREATE TABLE [dbo].[Sys_ModuleFormInstance](
-	[F_Id] [varchar](50) NOT NULL,
-	[F_FormId] [varchar](50) NOT NULL,
-	[F_ObjectId] [varchar](50) NULL,
-	[F_InstanceJson] [varchar](max) NULL,
+	[F_Id] [nvarchar](50) NOT NULL,
+	[F_FormId] [nvarchar](50) NOT NULL,
+	[F_ObjectId] [nvarchar](50) NULL,
+	[F_InstanceJson] [nvarchar](max) NULL,
 	[F_SortCode] [int] NULL,
 	[F_CreatorTime] [datetime] NULL,
-	[F_CreatorUserId] [varchar](50) NULL,
+	[F_CreatorUserId] [nvarchar](50) NULL,
  CONSTRAINT [PK_SYS_MODULEFORMINSTANCE] PRIMARY KEY NONCLUSTERED 
 (
 	[F_Id] ASC

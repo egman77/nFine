@@ -1,8 +1,8 @@
 ﻿CREATE TABLE [dbo].[Sys_UserLogOn](
-	[F_Id] [varchar](50) NOT NULL,
-	[F_UserId] [varchar](50) NULL,
-	[F_UserPassword] [varchar](50) NULL,
-	[F_UserSecretkey] [varchar](50) NULL,
+	[F_Id] [nvarchar](50) NOT NULL,
+	[F_UserId] [nvarchar](50) NULL,
+	[F_UserPassword] [nvarchar](50) NULL,
+	[F_UserSecretkey] [nvarchar](50) NULL,
 	[F_AllowStartTime] [datetime] NULL,
 	[F_AllowEndTime] [datetime] NULL,
 	[F_LockStartDate] [datetime] NULL,
@@ -14,11 +14,11 @@
 	[F_MultiUserLogin] [bit] NULL,
 	[F_LogOnCount] [int] NULL,
 	[F_UserOnLine] [bit] NULL,
-	[F_Question] [varchar](50) NULL,
-	[F_AnswerQuestion] [varchar](500) NULL,
+	[F_Question] [nvarchar](50) NULL,
+	[F_AnswerQuestion] [nvarchar](500) NULL,
 	[F_CheckIPAddress] [bit] NULL,
-	[F_Language] [varchar](50) NULL,
-	[F_Theme] [varchar](50) NULL,
+	[F_Language] [nvarchar](50) NULL,
+	[F_Theme] [nvarchar](50) NULL,
  CONSTRAINT [PK_SYS_USERLOGON] PRIMARY KEY NONCLUSTERED 
 (
 	[F_Id] ASC

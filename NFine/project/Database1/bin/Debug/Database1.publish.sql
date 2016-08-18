@@ -36,2798 +36,648 @@ IF N'$(__IsSqlCmdEnabled)' NOT LIKE N'True'
 
 
 GO
-USE [master];
-
-
-GO
-
-IF (DB_ID(N'$(DatabaseName)') IS NOT NULL) 
-BEGIN
-    ALTER DATABASE [$(DatabaseName)]
-    SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
-    DROP DATABASE [$(DatabaseName)];
-END
-
-GO
-PRINT N'正在创建 $(DatabaseName)...'
-GO
-CREATE DATABASE [$(DatabaseName)]
-    ON 
-    PRIMARY(NAME = [$(DatabaseName)], FILENAME = N'$(DefaultDataPath)$(DefaultFilePrefix)_Primary.mdf')
-    LOG ON (NAME = [$(DatabaseName)_log], FILENAME = N'$(DefaultLogPath)$(DefaultFilePrefix)_Primary.ldf') COLLATE SQL_Latin1_General_CP1_CI_AS
-GO
-IF EXISTS (SELECT 1
-           FROM   [master].[dbo].[sysdatabases]
-           WHERE  [name] = N'$(DatabaseName)')
-    BEGIN
-        ALTER DATABASE [$(DatabaseName)]
-            SET ANSI_NULLS ON,
-                ANSI_PADDING ON,
-                ANSI_WARNINGS ON,
-                ARITHABORT ON,
-                CONCAT_NULL_YIELDS_NULL ON,
-                NUMERIC_ROUNDABORT OFF,
-                QUOTED_IDENTIFIER ON,
-                ANSI_NULL_DEFAULT ON,
-                CURSOR_DEFAULT LOCAL,
-                RECOVERY FULL,
-                CURSOR_CLOSE_ON_COMMIT OFF,
-                AUTO_CREATE_STATISTICS ON,
-                AUTO_SHRINK OFF,
-                AUTO_UPDATE_STATISTICS ON,
-                RECURSIVE_TRIGGERS OFF 
-            WITH ROLLBACK IMMEDIATE;
-        ALTER DATABASE [$(DatabaseName)]
-            SET AUTO_CLOSE OFF 
-            WITH ROLLBACK IMMEDIATE;
-    END
-
-
-GO
-IF EXISTS (SELECT 1
-           FROM   [master].[dbo].[sysdatabases]
-           WHERE  [name] = N'$(DatabaseName)')
-    BEGIN
-        ALTER DATABASE [$(DatabaseName)]
-            SET ALLOW_SNAPSHOT_ISOLATION OFF;
-    END
-
-
-GO
-IF EXISTS (SELECT 1
-           FROM   [master].[dbo].[sysdatabases]
-           WHERE  [name] = N'$(DatabaseName)')
-    BEGIN
-        ALTER DATABASE [$(DatabaseName)]
-            SET READ_COMMITTED_SNAPSHOT OFF 
-            WITH ROLLBACK IMMEDIATE;
-    END
-
-
-GO
-IF EXISTS (SELECT 1
-           FROM   [master].[dbo].[sysdatabases]
-           WHERE  [name] = N'$(DatabaseName)')
-    BEGIN
-        ALTER DATABASE [$(DatabaseName)]
-            SET AUTO_UPDATE_STATISTICS_ASYNC OFF,
-                PAGE_VERIFY NONE,
-                DATE_CORRELATION_OPTIMIZATION OFF,
-                DISABLE_BROKER,
-                PARAMETERIZATION SIMPLE,
-                SUPPLEMENTAL_LOGGING OFF 
-            WITH ROLLBACK IMMEDIATE;
-    END
-
-
-GO
-IF IS_SRVROLEMEMBER(N'sysadmin') = 1
-    BEGIN
-        IF EXISTS (SELECT 1
-                   FROM   [master].[dbo].[sysdatabases]
-                   WHERE  [name] = N'$(DatabaseName)')
-            BEGIN
-                EXECUTE sp_executesql N'ALTER DATABASE [$(DatabaseName)]
-    SET TRUSTWORTHY OFF,
-        DB_CHAINING OFF 
-    WITH ROLLBACK IMMEDIATE';
-            END
-    END
-ELSE
-    BEGIN
-        PRINT N'无法修改数据库设置。您必须是 SysAdmin 才能应用这些设置。';
-    END
-
-
-GO
-IF IS_SRVROLEMEMBER(N'sysadmin') = 1
-    BEGIN
-        IF EXISTS (SELECT 1
-                   FROM   [master].[dbo].[sysdatabases]
-                   WHERE  [name] = N'$(DatabaseName)')
-            BEGIN
-                EXECUTE sp_executesql N'ALTER DATABASE [$(DatabaseName)]
-    SET HONOR_BROKER_PRIORITY OFF 
-    WITH ROLLBACK IMMEDIATE';
-            END
-    END
-ELSE
-    BEGIN
-        PRINT N'无法修改数据库设置。您必须是 SysAdmin 才能应用这些设置。';
-    END
-
-
-GO
-ALTER DATABASE [$(DatabaseName)]
-    SET TARGET_RECOVERY_TIME = 0 SECONDS 
-    WITH ROLLBACK IMMEDIATE;
-
-
-GO
-IF EXISTS (SELECT 1
-           FROM   [master].[dbo].[sysdatabases]
-           WHERE  [name] = N'$(DatabaseName)')
-    BEGIN
-        ALTER DATABASE [$(DatabaseName)]
-            SET FILESTREAM(NON_TRANSACTED_ACCESS = OFF),
-                CONTAINMENT = NONE 
-            WITH ROLLBACK IMMEDIATE;
-    END
-
-
-GO
 USE [$(DatabaseName)];
 
 
 GO
-IF fulltextserviceproperty(N'IsFulltextInstalled') = 1
-    EXECUTE sp_fulltext_database 'enable';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Area]...';
-
-
-GO
-CREATE TABLE [dbo].[Sys_Area] (
-    [F_Id]               VARCHAR (50)  NOT NULL,
-    [F_ParentId]         VARCHAR (50)  NULL,
-    [F_Layers]           INT           NULL,
-    [F_EnCode]           VARCHAR (50)  NULL,
-    [F_FullName]         VARCHAR (50)  NULL,
-    [F_SimpleSpelling]   VARCHAR (50)  NULL,
-    [F_SortCode]         INT           NULL,
-    [F_DeleteMark]       BIT           NULL,
-    [F_EnabledMark]      BIT           NULL,
-    [F_Description]      VARCHAR (500) NULL,
-    [F_CreatorTime]      DATETIME      NULL,
-    [F_CreatorUserId]    VARCHAR (50)  NULL,
-    [F_LastModifyTime]   DATETIME      NULL,
-    [F_LastModifyUserId] VARCHAR (50)  NULL,
-    [F_DeleteTime]       DATETIME      NULL,
-    [F_DeleteUserId]     VARCHAR (50)  NULL,
-    CONSTRAINT [PK_SYS_AREA] PRIMARY KEY NONCLUSTERED ([F_Id] ASC) ON [PRIMARY]
-) ON [PRIMARY];
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_DbBackup]...';
-
-
-GO
-CREATE TABLE [dbo].[Sys_DbBackup] (
-    [F_Id]               VARCHAR (50)  NOT NULL,
-    [F_BackupType]       VARCHAR (50)  NULL,
-    [F_DbName]           VARCHAR (50)  NULL,
-    [F_FileName]         VARCHAR (50)  NULL,
-    [F_FileSize]         VARCHAR (50)  NULL,
-    [F_FilePath]         VARCHAR (500) NULL,
-    [F_BackupTime]       DATETIME      NULL,
-    [F_SortCode]         INT           NULL,
-    [F_DeleteMark]       BIT           NULL,
-    [F_EnabledMark]      BIT           NULL,
-    [F_Description]      VARCHAR (500) NULL,
-    [F_CreatorTime]      DATETIME      NULL,
-    [F_CreatorUserId]    VARCHAR (50)  NULL,
-    [F_LastModifyTime]   DATETIME      NULL,
-    [F_LastModifyUserId] VARCHAR (50)  NULL,
-    [F_DeleteTime]       DATETIME      NULL,
-    [F_DeleteUserId]     VARCHAR (500) NULL,
-    CONSTRAINT [PK_SYS_DBBACKUP] PRIMARY KEY NONCLUSTERED ([F_Id] ASC) ON [PRIMARY]
-) ON [PRIMARY];
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_FilterIP]...';
-
-
-GO
-CREATE TABLE [dbo].[Sys_FilterIP] (
-    [F_Id]               VARCHAR (50)  NOT NULL,
-    [F_Type]             BIT           NULL,
-    [F_StartIP]          VARCHAR (50)  NULL,
-    [F_EndIP]            VARCHAR (50)  NULL,
-    [F_SortCode]         INT           NULL,
-    [F_DeleteMark]       BIT           NULL,
-    [F_EnabledMark]      BIT           NULL,
-    [F_Description]      VARCHAR (500) NULL,
-    [F_CreatorTime]      DATETIME      NULL,
-    [F_CreatorUserId]    VARCHAR (50)  NULL,
-    [F_LastModifyTime]   DATETIME      NULL,
-    [F_LastModifyUserId] VARCHAR (50)  NULL,
-    [F_DeleteTime]       DATETIME      NULL,
-    [F_DeleteUserId]     VARCHAR (500) NULL,
-    CONSTRAINT [PK_SYS_FILTERIP] PRIMARY KEY NONCLUSTERED ([F_Id] ASC) ON [PRIMARY]
-) ON [PRIMARY];
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Items]...';
-
-
-GO
-CREATE TABLE [dbo].[Sys_Items] (
-    [F_Id]               VARCHAR (50)  NOT NULL,
-    [F_ParentId]         VARCHAR (50)  NULL,
-    [F_EnCode]           VARCHAR (50)  NULL,
-    [F_FullName]         VARCHAR (50)  NULL,
-    [F_IsTree]           BIT           NULL,
-    [F_Layers]           INT           NULL,
-    [F_SortCode]         INT           NULL,
-    [F_DeleteMark]       BIT           NULL,
-    [F_EnabledMark]      BIT           NULL,
-    [F_Description]      VARCHAR (500) NULL,
-    [F_CreatorTime]      DATETIME      NULL,
-    [F_CreatorUserId]    VARCHAR (50)  NULL,
-    [F_LastModifyTime]   DATETIME      NULL,
-    [F_LastModifyUserId] VARCHAR (50)  NULL,
-    [F_DeleteTime]       DATETIME      NULL,
-    [F_DeleteUserId]     VARCHAR (50)  NULL,
-    CONSTRAINT [PK_SYS_ITEMS] PRIMARY KEY NONCLUSTERED ([F_Id] ASC) ON [PRIMARY]
-) ON [PRIMARY];
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_ItemsDetail]...';
-
-
-GO
-CREATE TABLE [dbo].[Sys_ItemsDetail] (
-    [F_Id]               VARCHAR (50)  NOT NULL,
-    [F_ItemId]           VARCHAR (50)  NULL,
-    [F_ParentId]         VARCHAR (50)  NULL,
-    [F_ItemCode]         VARCHAR (50)  NULL,
-    [F_ItemName]         VARCHAR (50)  NULL,
-    [F_SimpleSpelling]   VARCHAR (500) NULL,
-    [F_IsDefault]        BIT           NULL,
-    [F_Layers]           INT           NULL,
-    [F_SortCode]         INT           NULL,
-    [F_DeleteMark]       BIT           NULL,
-    [F_EnabledMark]      BIT           NULL,
-    [F_Description]      VARCHAR (500) NULL,
-    [F_CreatorTime]      DATETIME      NULL,
-    [F_CreatorUserId]    VARCHAR (50)  NULL,
-    [F_LastModifyTime]   DATETIME      NULL,
-    [F_LastModifyUserId] VARCHAR (50)  NULL,
-    [F_DeleteTime]       DATETIME      NULL,
-    [F_DeleteUserId]     VARCHAR (50)  NULL,
-    CONSTRAINT [PK_SYS_ITEMDETAIL] PRIMARY KEY NONCLUSTERED ([F_Id] ASC) ON [PRIMARY]
-) ON [PRIMARY];
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Log]...';
-
-
-GO
-CREATE TABLE [dbo].[Sys_Log] (
-    [F_Id]            VARCHAR (50)  NOT NULL,
-    [F_Date]          DATETIME      NULL,
-    [F_Account]       VARCHAR (50)  NULL,
-    [F_NickName]      VARCHAR (50)  NULL,
-    [F_Type]          VARCHAR (50)  NULL,
-    [F_IPAddress]     VARCHAR (50)  NULL,
-    [F_IPAddressName] VARCHAR (50)  NULL,
-    [F_ModuleId]      VARCHAR (50)  NULL,
-    [F_ModuleName]    VARCHAR (50)  NULL,
-    [F_Result]        BIT           NULL,
-    [F_Description]   VARCHAR (500) NULL,
-    [F_CreatorTime]   DATETIME      NULL,
-    [F_CreatorUserId] VARCHAR (50)  NULL,
-    CONSTRAINT [PK_SYS_LOG] PRIMARY KEY NONCLUSTERED ([F_Id] ASC) ON [PRIMARY]
-) ON [PRIMARY];
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Module]...';
-
-
-GO
-CREATE TABLE [dbo].[Sys_Module] (
-    [F_Id]               VARCHAR (50)  NOT NULL,
-    [F_ParentId]         VARCHAR (50)  NULL,
-    [F_Layers]           INT           NULL,
-    [F_EnCode]           VARCHAR (50)  NULL,
-    [F_FullName]         VARCHAR (50)  NULL,
-    [F_Icon]             VARCHAR (50)  NULL,
-    [F_UrlAddress]       VARCHAR (500) NULL,
-    [F_Target]           VARCHAR (50)  NULL,
-    [F_IsMenu]           BIT           NULL,
-    [F_IsExpand]         BIT           NULL,
-    [F_IsPublic]         BIT           NULL,
-    [F_AllowEdit]        BIT           NULL,
-    [F_AllowDelete]      BIT           NULL,
-    [F_SortCode]         INT           NULL,
-    [F_DeleteMark]       BIT           NULL,
-    [F_EnabledMark]      BIT           NULL,
-    [F_Description]      VARCHAR (500) NULL,
-    [F_CreatorTime]      DATETIME      NULL,
-    [F_CreatorUserId]    VARCHAR (50)  NULL,
-    [F_LastModifyTime]   DATETIME      NULL,
-    [F_LastModifyUserId] VARCHAR (50)  NULL,
-    [F_DeleteTime]       DATETIME      NULL,
-    [F_DeleteUserId]     VARCHAR (50)  NULL,
-    CONSTRAINT [PK_SYS_MODULE] PRIMARY KEY NONCLUSTERED ([F_Id] ASC) ON [PRIMARY]
-) ON [PRIMARY];
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_ModuleButton]...';
-
-
-GO
-CREATE TABLE [dbo].[Sys_ModuleButton] (
-    [F_Id]               VARCHAR (50)  NOT NULL,
-    [F_ModuleId]         VARCHAR (50)  NULL,
-    [F_ParentId]         VARCHAR (50)  NULL,
-    [F_Layers]           INT           NULL,
-    [F_EnCode]           VARCHAR (50)  NULL,
-    [F_FullName]         VARCHAR (50)  NULL,
-    [F_Icon]             VARCHAR (50)  NULL,
-    [F_Location]         INT           NULL,
-    [F_JsEvent]          VARCHAR (50)  NULL,
-    [F_UrlAddress]       VARCHAR (500) NULL,
-    [F_Split]            BIT           NULL,
-    [F_IsPublic]         BIT           NULL,
-    [F_AllowEdit]        BIT           NULL,
-    [F_AllowDelete]      BIT           NULL,
-    [F_SortCode]         INT           NULL,
-    [F_DeleteMark]       BIT           NULL,
-    [F_EnabledMark]      BIT           NULL,
-    [F_Description]      VARCHAR (500) NULL,
-    [F_CreatorTime]      DATETIME      NULL,
-    [F_CreatorUserId]    VARCHAR (50)  NULL,
-    [F_LastModifyTime]   DATETIME      NULL,
-    [F_LastModifyUserId] VARCHAR (50)  NULL,
-    [F_DeleteTime]       DATETIME      NULL,
-    [F_DeleteUserId]     VARCHAR (50)  NULL,
-    CONSTRAINT [PK_SYS_MODULEBUTTON] PRIMARY KEY NONCLUSTERED ([F_Id] ASC) ON [PRIMARY]
-) ON [PRIMARY];
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_ModuleForm]...';
-
-
-GO
-CREATE TABLE [dbo].[Sys_ModuleForm] (
-    [F_Id]               VARCHAR (50)  NOT NULL,
-    [F_ModuleId]         VARCHAR (50)  NULL,
-    [F_EnCode]           VARCHAR (50)  NULL,
-    [F_FullName]         VARCHAR (50)  NULL,
-    [F_FormJson]         VARCHAR (MAX) NULL,
-    [F_SortCode]         INT           NULL,
-    [F_DeleteMark]       BIT           NULL,
-    [F_EnabledMark]      BIT           NULL,
-    [F_Description]      VARCHAR (500) NULL,
-    [F_CreatorTime]      DATETIME      NULL,
-    [F_CreatorUserId]    VARCHAR (50)  NULL,
-    [F_LastModifyTime]   DATETIME      NULL,
-    [F_LastModifyUserId] VARCHAR (50)  NULL,
-    [F_DeleteTime]       DATETIME      NULL,
-    [F_DeleteUserId]     VARCHAR (500) NULL,
-    CONSTRAINT [PK_SYS_MODULEFORM] PRIMARY KEY NONCLUSTERED ([F_Id] ASC) ON [PRIMARY]
-) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY];
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_ModuleFormInstance]...';
-
-
-GO
-CREATE TABLE [dbo].[Sys_ModuleFormInstance] (
-    [F_Id]            VARCHAR (50)  NOT NULL,
-    [F_FormId]        VARCHAR (50)  NOT NULL,
-    [F_ObjectId]      VARCHAR (50)  NULL,
-    [F_InstanceJson]  VARCHAR (MAX) NULL,
-    [F_SortCode]      INT           NULL,
-    [F_CreatorTime]   DATETIME      NULL,
-    [F_CreatorUserId] VARCHAR (50)  NULL,
-    CONSTRAINT [PK_SYS_MODULEFORMINSTANCE] PRIMARY KEY NONCLUSTERED ([F_Id] ASC) ON [PRIMARY]
-) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY];
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Organize]...';
-
-
-GO
-CREATE TABLE [dbo].[Sys_Organize] (
-    [F_Id]               VARCHAR (50)  NOT NULL,
-    [F_ParentId]         VARCHAR (50)  NULL,
-    [F_Layers]           INT           NULL,
-    [F_EnCode]           VARCHAR (50)  NULL,
-    [F_FullName]         VARCHAR (50)  NULL,
-    [F_ShortName]        VARCHAR (50)  NULL,
-    [F_CategoryId]       VARCHAR (50)  NULL,
-    [F_ManagerId]        VARCHAR (50)  NULL,
-    [F_TelePhone]        VARCHAR (20)  NULL,
-    [F_MobilePhone]      VARCHAR (20)  NULL,
-    [F_WeChat]           VARCHAR (50)  NULL,
-    [F_Fax]              VARCHAR (20)  NULL,
-    [F_Email]            VARCHAR (50)  NULL,
-    [F_AreaId]           VARCHAR (50)  NULL,
-    [F_Address]          VARCHAR (500) NULL,
-    [F_AllowEdit]        BIT           NULL,
-    [F_AllowDelete]      BIT           NULL,
-    [F_SortCode]         INT           NULL,
-    [F_DeleteMark]       BIT           NULL,
-    [F_EnabledMark]      BIT           NULL,
-    [F_Description]      VARCHAR (500) NULL,
-    [F_CreatorTime]      DATETIME      NULL,
-    [F_CreatorUserId]    VARCHAR (50)  NULL,
-    [F_LastModifyTime]   DATETIME      NULL,
-    [F_LastModifyUserId] VARCHAR (50)  NULL,
-    [F_DeleteTime]       DATETIME      NULL,
-    [F_DeleteUserId]     VARCHAR (500) NULL,
-    CONSTRAINT [PK_SYS_ORGANIZE] PRIMARY KEY NONCLUSTERED ([F_Id] ASC) ON [PRIMARY]
-) ON [PRIMARY];
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Role]...';
-
-
-GO
-CREATE TABLE [dbo].[Sys_Role] (
-    [F_Id]               VARCHAR (50)  NOT NULL,
-    [F_OrganizeId]       VARCHAR (50)  NULL,
-    [F_Category]         INT           NULL,
-    [F_EnCode]           VARCHAR (50)  NULL,
-    [F_FullName]         VARCHAR (50)  NULL,
-    [F_Type]             VARCHAR (50)  NULL,
-    [F_AllowEdit]        BIT           NULL,
-    [F_AllowDelete]      BIT           NULL,
-    [F_SortCode]         INT           NULL,
-    [F_DeleteMark]       BIT           NULL,
-    [F_EnabledMark]      BIT           NULL,
-    [F_Description]      VARCHAR (500) NULL,
-    [F_CreatorTime]      DATETIME      NULL,
-    [F_CreatorUserId]    VARCHAR (50)  NULL,
-    [F_LastModifyTime]   DATETIME      NULL,
-    [F_LastModifyUserId] VARCHAR (50)  NULL,
-    [F_DeleteTime]       DATETIME      NULL,
-    [F_DeleteUserId]     VARCHAR (500) NULL,
-    CONSTRAINT [PK_SYS_ROLE] PRIMARY KEY NONCLUSTERED ([F_Id] ASC) ON [PRIMARY]
-) ON [PRIMARY];
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_RoleAuthorize]...';
-
-
-GO
-CREATE TABLE [dbo].[Sys_RoleAuthorize] (
-    [F_Id]            VARCHAR (50) NOT NULL,
-    [F_ItemType]      INT          NULL,
-    [F_ItemId]        VARCHAR (50) NULL,
-    [F_ObjectType]    INT          NULL,
-    [F_ObjectId]      VARCHAR (50) NULL,
-    [F_SortCode]      INT          NULL,
-    [F_CreatorTime]   DATETIME     NULL,
-    [F_CreatorUserId] VARCHAR (50) NULL,
-    CONSTRAINT [PK_SYS_ROLEAUTHORIZE] PRIMARY KEY NONCLUSTERED ([F_Id] ASC) ON [PRIMARY]
-) ON [PRIMARY];
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_User]...';
-
-
-GO
-CREATE TABLE [dbo].[Sys_User] (
-    [F_Id]               VARCHAR (50)  NOT NULL,
-    [F_Account]          VARCHAR (50)  NULL,
-    [F_RealName]         VARCHAR (50)  NULL,
-    [F_NickName]         VARCHAR (50)  NULL,
-    [F_HeadIcon]         VARCHAR (50)  NULL,
-    [F_Gender]           BIT           NULL,
-    [F_Birthday]         DATETIME      NULL,
-    [F_MobilePhone]      VARCHAR (20)  NULL,
-    [F_Email]            VARCHAR (50)  NULL,
-    [F_WeChat]           VARCHAR (50)  NULL,
-    [F_ManagerId]        VARCHAR (50)  NULL,
-    [F_SecurityLevel]    INT           NULL,
-    [F_Signature]        VARCHAR (500) NULL,
-    [F_OrganizeId]       VARCHAR (50)  NULL,
-    [F_DepartmentId]     VARCHAR (500) NULL,
-    [F_RoleId]           VARCHAR (500) NULL,
-    [F_DutyId]           VARCHAR (500) NULL,
-    [F_IsAdministrator]  BIT           NULL,
-    [F_SortCode]         INT           NULL,
-    [F_DeleteMark]       BIT           NULL,
-    [F_EnabledMark]      BIT           NULL,
-    [F_Description]      VARCHAR (500) NULL,
-    [F_CreatorTime]      DATETIME      NULL,
-    [F_CreatorUserId]    VARCHAR (50)  NULL,
-    [F_LastModifyTime]   DATETIME      NULL,
-    [F_LastModifyUserId] VARCHAR (50)  NULL,
-    [F_DeleteTime]       DATETIME      NULL,
-    [F_DeleteUserId]     VARCHAR (500) NULL,
-    CONSTRAINT [PK_SYS_USER] PRIMARY KEY NONCLUSTERED ([F_Id] ASC) ON [PRIMARY]
-) ON [PRIMARY];
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_UserLogOn]...';
-
-
-GO
-CREATE TABLE [dbo].[Sys_UserLogOn] (
-    [F_Id]                 VARCHAR (50)  NOT NULL,
-    [F_UserId]             VARCHAR (50)  NULL,
-    [F_UserPassword]       VARCHAR (50)  NULL,
-    [F_UserSecretkey]      VARCHAR (50)  NULL,
-    [F_AllowStartTime]     DATETIME      NULL,
-    [F_AllowEndTime]       DATETIME      NULL,
-    [F_LockStartDate]      DATETIME      NULL,
-    [F_LockEndDate]        DATETIME      NULL,
-    [F_FirstVisitTime]     DATETIME      NULL,
-    [F_PreviousVisitTime]  DATETIME      NULL,
-    [F_LastVisitTime]      DATETIME      NULL,
-    [F_ChangePasswordDate] DATETIME      NULL,
-    [F_MultiUserLogin]     BIT           NULL,
-    [F_LogOnCount]         INT           NULL,
-    [F_UserOnLine]         BIT           NULL,
-    [F_Question]           VARCHAR (50)  NULL,
-    [F_AnswerQuestion]     VARCHAR (500) NULL,
-    [F_CheckIPAddress]     BIT           NULL,
-    [F_Language]           VARCHAR (50)  NULL,
-    [F_Theme]              VARCHAR (50)  NULL,
-    CONSTRAINT [PK_SYS_USERLOGON] PRIMARY KEY NONCLUSTERED ([F_Id] ASC) ON [PRIMARY]
-) ON [PRIMARY];
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Area].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'行政区域表', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Area';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Area].[F_Id].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'主键', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Area', @level2type = N'COLUMN', @level2name = N'F_Id';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Area].[F_ParentId].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'父级', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Area', @level2type = N'COLUMN', @level2name = N'F_ParentId';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Area].[F_Layers].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'层次', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Area', @level2type = N'COLUMN', @level2name = N'F_Layers';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Area].[F_EnCode].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'编码', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Area', @level2type = N'COLUMN', @level2name = N'F_EnCode';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Area].[F_FullName].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'名称', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Area', @level2type = N'COLUMN', @level2name = N'F_FullName';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Area].[F_SimpleSpelling].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'简拼', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Area', @level2type = N'COLUMN', @level2name = N'F_SimpleSpelling';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Area].[F_SortCode].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'排序码', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Area', @level2type = N'COLUMN', @level2name = N'F_SortCode';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Area].[F_DeleteMark].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'删除标志', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Area', @level2type = N'COLUMN', @level2name = N'F_DeleteMark';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Area].[F_EnabledMark].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'有效标志', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Area', @level2type = N'COLUMN', @level2name = N'F_EnabledMark';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Area].[F_Description].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'描述', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Area', @level2type = N'COLUMN', @level2name = N'F_Description';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Area].[F_CreatorTime].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'创建日期', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Area', @level2type = N'COLUMN', @level2name = N'F_CreatorTime';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Area].[F_CreatorUserId].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'创建用户主键', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Area', @level2type = N'COLUMN', @level2name = N'F_CreatorUserId';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Area].[F_LastModifyTime].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'最后修改时间', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Area', @level2type = N'COLUMN', @level2name = N'F_LastModifyTime';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Area].[F_LastModifyUserId].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'最后修改用户', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Area', @level2type = N'COLUMN', @level2name = N'F_LastModifyUserId';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Area].[F_DeleteTime].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'删除时间', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Area', @level2type = N'COLUMN', @level2name = N'F_DeleteTime';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Area].[F_DeleteUserId].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'删除用户', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Area', @level2type = N'COLUMN', @level2name = N'F_DeleteUserId';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_DbBackup].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'数据库备份', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_DbBackup';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_DbBackup].[F_Id].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'备份主键', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_DbBackup', @level2type = N'COLUMN', @level2name = N'F_Id';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_DbBackup].[F_BackupType].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'备份类型', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_DbBackup', @level2type = N'COLUMN', @level2name = N'F_BackupType';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_DbBackup].[F_DbName].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'数据库名称', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_DbBackup', @level2type = N'COLUMN', @level2name = N'F_DbName';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_DbBackup].[F_FileName].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'文件名称', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_DbBackup', @level2type = N'COLUMN', @level2name = N'F_FileName';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_DbBackup].[F_FileSize].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'文件大小', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_DbBackup', @level2type = N'COLUMN', @level2name = N'F_FileSize';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_DbBackup].[F_FilePath].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'文件路径', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_DbBackup', @level2type = N'COLUMN', @level2name = N'F_FilePath';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_DbBackup].[F_BackupTime].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'备份时间', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_DbBackup', @level2type = N'COLUMN', @level2name = N'F_BackupTime';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_DbBackup].[F_SortCode].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'排序码', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_DbBackup', @level2type = N'COLUMN', @level2name = N'F_SortCode';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_DbBackup].[F_DeleteMark].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'删除标志', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_DbBackup', @level2type = N'COLUMN', @level2name = N'F_DeleteMark';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_DbBackup].[F_EnabledMark].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'有效标志', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_DbBackup', @level2type = N'COLUMN', @level2name = N'F_EnabledMark';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_DbBackup].[F_Description].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'描述', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_DbBackup', @level2type = N'COLUMN', @level2name = N'F_Description';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_DbBackup].[F_CreatorTime].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'创建时间', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_DbBackup', @level2type = N'COLUMN', @level2name = N'F_CreatorTime';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_DbBackup].[F_CreatorUserId].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'创建用户', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_DbBackup', @level2type = N'COLUMN', @level2name = N'F_CreatorUserId';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_DbBackup].[F_LastModifyTime].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'最后修改时间', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_DbBackup', @level2type = N'COLUMN', @level2name = N'F_LastModifyTime';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_DbBackup].[F_LastModifyUserId].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'最后修改用户', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_DbBackup', @level2type = N'COLUMN', @level2name = N'F_LastModifyUserId';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_DbBackup].[F_DeleteTime].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'删除时间', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_DbBackup', @level2type = N'COLUMN', @level2name = N'F_DeleteTime';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_DbBackup].[F_DeleteUserId].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'删除用户', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_DbBackup', @level2type = N'COLUMN', @level2name = N'F_DeleteUserId';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_FilterIP].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'过滤IP', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_FilterIP';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_FilterIP].[F_Id].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'过滤主键', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_FilterIP', @level2type = N'COLUMN', @level2name = N'F_Id';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_FilterIP].[F_Type].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'类型', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_FilterIP', @level2type = N'COLUMN', @level2name = N'F_Type';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_FilterIP].[F_StartIP].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'开始IP', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_FilterIP', @level2type = N'COLUMN', @level2name = N'F_StartIP';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_FilterIP].[F_EndIP].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'结束IP', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_FilterIP', @level2type = N'COLUMN', @level2name = N'F_EndIP';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_FilterIP].[F_SortCode].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'排序码', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_FilterIP', @level2type = N'COLUMN', @level2name = N'F_SortCode';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_FilterIP].[F_DeleteMark].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'删除标志', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_FilterIP', @level2type = N'COLUMN', @level2name = N'F_DeleteMark';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_FilterIP].[F_EnabledMark].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'有效标志', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_FilterIP', @level2type = N'COLUMN', @level2name = N'F_EnabledMark';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_FilterIP].[F_Description].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'描述', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_FilterIP', @level2type = N'COLUMN', @level2name = N'F_Description';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_FilterIP].[F_CreatorTime].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'创建时间', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_FilterIP', @level2type = N'COLUMN', @level2name = N'F_CreatorTime';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_FilterIP].[F_CreatorUserId].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'创建用户', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_FilterIP', @level2type = N'COLUMN', @level2name = N'F_CreatorUserId';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_FilterIP].[F_LastModifyTime].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'最后修改时间', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_FilterIP', @level2type = N'COLUMN', @level2name = N'F_LastModifyTime';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_FilterIP].[F_LastModifyUserId].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'最后修改用户', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_FilterIP', @level2type = N'COLUMN', @level2name = N'F_LastModifyUserId';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_FilterIP].[F_DeleteTime].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'删除时间', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_FilterIP', @level2type = N'COLUMN', @level2name = N'F_DeleteTime';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_FilterIP].[F_DeleteUserId].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'删除用户', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_FilterIP', @level2type = N'COLUMN', @level2name = N'F_DeleteUserId';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Items].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'选项主表', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Items';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Items].[F_Id].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'主表主键', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Items', @level2type = N'COLUMN', @level2name = N'F_Id';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Items].[F_ParentId].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'父级', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Items', @level2type = N'COLUMN', @level2name = N'F_ParentId';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Items].[F_EnCode].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'编码', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Items', @level2type = N'COLUMN', @level2name = N'F_EnCode';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Items].[F_FullName].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'名称', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Items', @level2type = N'COLUMN', @level2name = N'F_FullName';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Items].[F_IsTree].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'树型', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Items', @level2type = N'COLUMN', @level2name = N'F_IsTree';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Items].[F_Layers].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'层次', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Items', @level2type = N'COLUMN', @level2name = N'F_Layers';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Items].[F_SortCode].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'排序码', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Items', @level2type = N'COLUMN', @level2name = N'F_SortCode';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Items].[F_DeleteMark].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'删除标志', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Items', @level2type = N'COLUMN', @level2name = N'F_DeleteMark';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Items].[F_EnabledMark].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'有效标志', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Items', @level2type = N'COLUMN', @level2name = N'F_EnabledMark';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Items].[F_Description].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'描述', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Items', @level2type = N'COLUMN', @level2name = N'F_Description';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Items].[F_CreatorTime].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'创建日期', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Items', @level2type = N'COLUMN', @level2name = N'F_CreatorTime';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Items].[F_CreatorUserId].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'创建用户主键', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Items', @level2type = N'COLUMN', @level2name = N'F_CreatorUserId';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Items].[F_LastModifyTime].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'最后修改时间', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Items', @level2type = N'COLUMN', @level2name = N'F_LastModifyTime';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Items].[F_LastModifyUserId].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'最后修改用户', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Items', @level2type = N'COLUMN', @level2name = N'F_LastModifyUserId';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Items].[F_DeleteTime].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'删除时间', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Items', @level2type = N'COLUMN', @level2name = N'F_DeleteTime';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Items].[F_DeleteUserId].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'删除用户', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Items', @level2type = N'COLUMN', @level2name = N'F_DeleteUserId';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_ItemsDetail].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'选项明细表', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_ItemsDetail';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_ItemsDetail].[F_Id].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'明细主键', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_ItemsDetail', @level2type = N'COLUMN', @level2name = N'F_Id';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_ItemsDetail].[F_ItemId].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'主表主键', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_ItemsDetail', @level2type = N'COLUMN', @level2name = N'F_ItemId';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_ItemsDetail].[F_ParentId].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'父级', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_ItemsDetail', @level2type = N'COLUMN', @level2name = N'F_ParentId';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_ItemsDetail].[F_ItemCode].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'编码', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_ItemsDetail', @level2type = N'COLUMN', @level2name = N'F_ItemCode';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_ItemsDetail].[F_ItemName].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'名称', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_ItemsDetail', @level2type = N'COLUMN', @level2name = N'F_ItemName';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_ItemsDetail].[F_SimpleSpelling].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'简拼', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_ItemsDetail', @level2type = N'COLUMN', @level2name = N'F_SimpleSpelling';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_ItemsDetail].[F_IsDefault].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'默认', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_ItemsDetail', @level2type = N'COLUMN', @level2name = N'F_IsDefault';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_ItemsDetail].[F_Layers].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'层次', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_ItemsDetail', @level2type = N'COLUMN', @level2name = N'F_Layers';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_ItemsDetail].[F_SortCode].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'排序码', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_ItemsDetail', @level2type = N'COLUMN', @level2name = N'F_SortCode';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_ItemsDetail].[F_DeleteMark].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'删除标志', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_ItemsDetail', @level2type = N'COLUMN', @level2name = N'F_DeleteMark';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_ItemsDetail].[F_EnabledMark].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'有效标志', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_ItemsDetail', @level2type = N'COLUMN', @level2name = N'F_EnabledMark';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_ItemsDetail].[F_Description].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'描述', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_ItemsDetail', @level2type = N'COLUMN', @level2name = N'F_Description';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_ItemsDetail].[F_CreatorTime].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'创建日期', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_ItemsDetail', @level2type = N'COLUMN', @level2name = N'F_CreatorTime';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_ItemsDetail].[F_CreatorUserId].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'创建用户主键', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_ItemsDetail', @level2type = N'COLUMN', @level2name = N'F_CreatorUserId';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_ItemsDetail].[F_LastModifyTime].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'最后修改时间', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_ItemsDetail', @level2type = N'COLUMN', @level2name = N'F_LastModifyTime';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_ItemsDetail].[F_LastModifyUserId].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'最后修改用户', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_ItemsDetail', @level2type = N'COLUMN', @level2name = N'F_LastModifyUserId';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_ItemsDetail].[F_DeleteTime].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'删除时间', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_ItemsDetail', @level2type = N'COLUMN', @level2name = N'F_DeleteTime';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_ItemsDetail].[F_DeleteUserId].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'删除用户', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_ItemsDetail', @level2type = N'COLUMN', @level2name = N'F_DeleteUserId';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Log].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'系统日志', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Log';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Log].[F_Id].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'日志主键', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Log', @level2type = N'COLUMN', @level2name = N'F_Id';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Log].[F_Date].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'日期', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Log', @level2type = N'COLUMN', @level2name = N'F_Date';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Log].[F_Account].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'用户名', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Log', @level2type = N'COLUMN', @level2name = N'F_Account';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Log].[F_NickName].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'姓名', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Log', @level2type = N'COLUMN', @level2name = N'F_NickName';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Log].[F_Type].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'类型', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Log', @level2type = N'COLUMN', @level2name = N'F_Type';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Log].[F_IPAddress].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'IP地址', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Log', @level2type = N'COLUMN', @level2name = N'F_IPAddress';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Log].[F_IPAddressName].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'IP所在城市', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Log', @level2type = N'COLUMN', @level2name = N'F_IPAddressName';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Log].[F_ModuleId].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'系统模块Id', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Log', @level2type = N'COLUMN', @level2name = N'F_ModuleId';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Log].[F_ModuleName].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'系统模块', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Log', @level2type = N'COLUMN', @level2name = N'F_ModuleName';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Log].[F_Result].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'结果', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Log', @level2type = N'COLUMN', @level2name = N'F_Result';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Log].[F_Description].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'描述', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Log', @level2type = N'COLUMN', @level2name = N'F_Description';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Log].[F_CreatorTime].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'创建时间', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Log', @level2type = N'COLUMN', @level2name = N'F_CreatorTime';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Log].[F_CreatorUserId].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'创建用户', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Log', @level2type = N'COLUMN', @level2name = N'F_CreatorUserId';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Module].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'系统模块', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Module';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Module].[F_Id].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'模块主键', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Module', @level2type = N'COLUMN', @level2name = N'F_Id';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Module].[F_ParentId].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'父级', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Module', @level2type = N'COLUMN', @level2name = N'F_ParentId';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Module].[F_Layers].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'层次', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Module', @level2type = N'COLUMN', @level2name = N'F_Layers';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Module].[F_EnCode].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'编码', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Module', @level2type = N'COLUMN', @level2name = N'F_EnCode';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Module].[F_FullName].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'名称', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Module', @level2type = N'COLUMN', @level2name = N'F_FullName';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Module].[F_Icon].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'图标', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Module', @level2type = N'COLUMN', @level2name = N'F_Icon';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Module].[F_UrlAddress].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'连接', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Module', @level2type = N'COLUMN', @level2name = N'F_UrlAddress';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Module].[F_Target].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'目标', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Module', @level2type = N'COLUMN', @level2name = N'F_Target';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Module].[F_IsMenu].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'菜单', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Module', @level2type = N'COLUMN', @level2name = N'F_IsMenu';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Module].[F_IsExpand].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'展开', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Module', @level2type = N'COLUMN', @level2name = N'F_IsExpand';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Module].[F_IsPublic].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'公共', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Module', @level2type = N'COLUMN', @level2name = N'F_IsPublic';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Module].[F_AllowEdit].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'允许编辑', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Module', @level2type = N'COLUMN', @level2name = N'F_AllowEdit';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Module].[F_AllowDelete].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'允许删除', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Module', @level2type = N'COLUMN', @level2name = N'F_AllowDelete';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Module].[F_SortCode].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'排序码', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Module', @level2type = N'COLUMN', @level2name = N'F_SortCode';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Module].[F_DeleteMark].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'删除标志', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Module', @level2type = N'COLUMN', @level2name = N'F_DeleteMark';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Module].[F_EnabledMark].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'有效标志', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Module', @level2type = N'COLUMN', @level2name = N'F_EnabledMark';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Module].[F_Description].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'描述', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Module', @level2type = N'COLUMN', @level2name = N'F_Description';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Module].[F_CreatorTime].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'创建日期', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Module', @level2type = N'COLUMN', @level2name = N'F_CreatorTime';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Module].[F_CreatorUserId].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'创建用户主键', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Module', @level2type = N'COLUMN', @level2name = N'F_CreatorUserId';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Module].[F_LastModifyTime].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'最后修改时间', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Module', @level2type = N'COLUMN', @level2name = N'F_LastModifyTime';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Module].[F_LastModifyUserId].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'最后修改用户', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Module', @level2type = N'COLUMN', @level2name = N'F_LastModifyUserId';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Module].[F_DeleteTime].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'删除时间', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Module', @level2type = N'COLUMN', @level2name = N'F_DeleteTime';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Module].[F_DeleteUserId].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'删除用户', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Module', @level2type = N'COLUMN', @level2name = N'F_DeleteUserId';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_ModuleButton].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'模块按钮', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_ModuleButton';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_ModuleButton].[F_Id].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'按钮主键', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_ModuleButton', @level2type = N'COLUMN', @level2name = N'F_Id';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_ModuleButton].[F_ModuleId].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'模块主键', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_ModuleButton', @level2type = N'COLUMN', @level2name = N'F_ModuleId';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_ModuleButton].[F_ParentId].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'父级', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_ModuleButton', @level2type = N'COLUMN', @level2name = N'F_ParentId';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_ModuleButton].[F_Layers].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'层次', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_ModuleButton', @level2type = N'COLUMN', @level2name = N'F_Layers';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_ModuleButton].[F_EnCode].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'编码', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_ModuleButton', @level2type = N'COLUMN', @level2name = N'F_EnCode';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_ModuleButton].[F_FullName].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'名称', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_ModuleButton', @level2type = N'COLUMN', @level2name = N'F_FullName';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_ModuleButton].[F_Icon].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'图标', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_ModuleButton', @level2type = N'COLUMN', @level2name = N'F_Icon';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_ModuleButton].[F_Location].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'位置', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_ModuleButton', @level2type = N'COLUMN', @level2name = N'F_Location';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_ModuleButton].[F_JsEvent].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'事件', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_ModuleButton', @level2type = N'COLUMN', @level2name = N'F_JsEvent';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_ModuleButton].[F_UrlAddress].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'连接', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_ModuleButton', @level2type = N'COLUMN', @level2name = N'F_UrlAddress';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_ModuleButton].[F_Split].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'分开线', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_ModuleButton', @level2type = N'COLUMN', @level2name = N'F_Split';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_ModuleButton].[F_IsPublic].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'公共', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_ModuleButton', @level2type = N'COLUMN', @level2name = N'F_IsPublic';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_ModuleButton].[F_AllowEdit].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'允许编辑', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_ModuleButton', @level2type = N'COLUMN', @level2name = N'F_AllowEdit';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_ModuleButton].[F_AllowDelete].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'允许删除', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_ModuleButton', @level2type = N'COLUMN', @level2name = N'F_AllowDelete';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_ModuleButton].[F_SortCode].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'排序码', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_ModuleButton', @level2type = N'COLUMN', @level2name = N'F_SortCode';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_ModuleButton].[F_DeleteMark].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'删除标志', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_ModuleButton', @level2type = N'COLUMN', @level2name = N'F_DeleteMark';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_ModuleButton].[F_EnabledMark].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'有效标志', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_ModuleButton', @level2type = N'COLUMN', @level2name = N'F_EnabledMark';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_ModuleButton].[F_Description].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'描述', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_ModuleButton', @level2type = N'COLUMN', @level2name = N'F_Description';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_ModuleButton].[F_CreatorTime].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'创建日期', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_ModuleButton', @level2type = N'COLUMN', @level2name = N'F_CreatorTime';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_ModuleButton].[F_CreatorUserId].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'创建用户主键', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_ModuleButton', @level2type = N'COLUMN', @level2name = N'F_CreatorUserId';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_ModuleButton].[F_LastModifyTime].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'最后修改时间', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_ModuleButton', @level2type = N'COLUMN', @level2name = N'F_LastModifyTime';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_ModuleButton].[F_LastModifyUserId].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'最后修改用户', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_ModuleButton', @level2type = N'COLUMN', @level2name = N'F_LastModifyUserId';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_ModuleButton].[F_DeleteTime].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'删除时间', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_ModuleButton', @level2type = N'COLUMN', @level2name = N'F_DeleteTime';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_ModuleButton].[F_DeleteUserId].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'删除用户', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_ModuleButton', @level2type = N'COLUMN', @level2name = N'F_DeleteUserId';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_ModuleForm].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'模块表单', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_ModuleForm';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_ModuleForm].[F_Id].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'表单主键', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_ModuleForm', @level2type = N'COLUMN', @level2name = N'F_Id';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_ModuleForm].[F_ModuleId].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'模块主键', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_ModuleForm', @level2type = N'COLUMN', @level2name = N'F_ModuleId';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_ModuleForm].[F_EnCode].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'编码', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_ModuleForm', @level2type = N'COLUMN', @level2name = N'F_EnCode';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_ModuleForm].[F_FullName].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'名称', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_ModuleForm', @level2type = N'COLUMN', @level2name = N'F_FullName';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_ModuleForm].[F_FormJson].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'表单控件Json', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_ModuleForm', @level2type = N'COLUMN', @level2name = N'F_FormJson';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_ModuleForm].[F_SortCode].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'排序码', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_ModuleForm', @level2type = N'COLUMN', @level2name = N'F_SortCode';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_ModuleForm].[F_DeleteMark].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'删除标志', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_ModuleForm', @level2type = N'COLUMN', @level2name = N'F_DeleteMark';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_ModuleForm].[F_EnabledMark].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'有效标志', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_ModuleForm', @level2type = N'COLUMN', @level2name = N'F_EnabledMark';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_ModuleForm].[F_Description].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'描述', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_ModuleForm', @level2type = N'COLUMN', @level2name = N'F_Description';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_ModuleForm].[F_CreatorTime].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'创建时间', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_ModuleForm', @level2type = N'COLUMN', @level2name = N'F_CreatorTime';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_ModuleForm].[F_CreatorUserId].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'创建用户', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_ModuleForm', @level2type = N'COLUMN', @level2name = N'F_CreatorUserId';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_ModuleForm].[F_LastModifyTime].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'最后修改时间', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_ModuleForm', @level2type = N'COLUMN', @level2name = N'F_LastModifyTime';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_ModuleForm].[F_LastModifyUserId].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'最后修改用户', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_ModuleForm', @level2type = N'COLUMN', @level2name = N'F_LastModifyUserId';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_ModuleForm].[F_DeleteTime].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'删除时间', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_ModuleForm', @level2type = N'COLUMN', @level2name = N'F_DeleteTime';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_ModuleForm].[F_DeleteUserId].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'删除用户', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_ModuleForm', @level2type = N'COLUMN', @level2name = N'F_DeleteUserId';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_ModuleFormInstance].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'模块表单实例', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_ModuleFormInstance';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_ModuleFormInstance].[F_Id].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'表单实例主键', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_ModuleFormInstance', @level2type = N'COLUMN', @level2name = N'F_Id';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_ModuleFormInstance].[F_FormId].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'表单主键', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_ModuleFormInstance', @level2type = N'COLUMN', @level2name = N'F_FormId';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_ModuleFormInstance].[F_ObjectId].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'对象主键', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_ModuleFormInstance', @level2type = N'COLUMN', @level2name = N'F_ObjectId';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_ModuleFormInstance].[F_InstanceJson].[MS_Description]...';
+PRINT N'正在删除 [dbo].[PK_SYS_AREA]...';
 
 
 GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'表单实例Json', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_ModuleFormInstance', @level2type = N'COLUMN', @level2name = N'F_InstanceJson';
+ALTER TABLE [dbo].[Sys_Area] DROP CONSTRAINT [PK_SYS_AREA];
 
 
 GO
-PRINT N'正在创建 [dbo].[Sys_ModuleFormInstance].[F_SortCode].[MS_Description]...';
+PRINT N'正在删除 [dbo].[PK_SYS_DBBACKUP]...';
 
 
 GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'排序码', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_ModuleFormInstance', @level2type = N'COLUMN', @level2name = N'F_SortCode';
+ALTER TABLE [dbo].[Sys_DbBackup] DROP CONSTRAINT [PK_SYS_DBBACKUP];
 
 
 GO
-PRINT N'正在创建 [dbo].[Sys_ModuleFormInstance].[F_CreatorTime].[MS_Description]...';
+PRINT N'正在删除 [dbo].[PK_SYS_FILTERIP]...';
 
 
 GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'创建时间', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_ModuleFormInstance', @level2type = N'COLUMN', @level2name = N'F_CreatorTime';
+ALTER TABLE [dbo].[Sys_FilterIP] DROP CONSTRAINT [PK_SYS_FILTERIP];
 
 
 GO
-PRINT N'正在创建 [dbo].[Sys_ModuleFormInstance].[F_CreatorUserId].[MS_Description]...';
+PRINT N'正在删除 [dbo].[PK_SYS_ITEMS]...';
 
 
 GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'创建用户', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_ModuleFormInstance', @level2type = N'COLUMN', @level2name = N'F_CreatorUserId';
+ALTER TABLE [dbo].[Sys_Items] DROP CONSTRAINT [PK_SYS_ITEMS];
 
 
 GO
-PRINT N'正在创建 [dbo].[Sys_Organize].[MS_Description]...';
+PRINT N'正在删除 [dbo].[PK_SYS_ITEMDETAIL]...';
 
 
 GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'组织表', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Organize';
+ALTER TABLE [dbo].[Sys_ItemsDetail] DROP CONSTRAINT [PK_SYS_ITEMDETAIL];
 
 
 GO
-PRINT N'正在创建 [dbo].[Sys_Organize].[F_Id].[MS_Description]...';
+PRINT N'正在删除 [dbo].[PK_SYS_LOG]...';
 
 
 GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'组织主键', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Organize', @level2type = N'COLUMN', @level2name = N'F_Id';
+ALTER TABLE [dbo].[Sys_Log] DROP CONSTRAINT [PK_SYS_LOG];
 
 
 GO
-PRINT N'正在创建 [dbo].[Sys_Organize].[F_ParentId].[MS_Description]...';
+PRINT N'正在删除 [dbo].[PK_SYS_MODULE]...';
 
 
 GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'父级', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Organize', @level2type = N'COLUMN', @level2name = N'F_ParentId';
+ALTER TABLE [dbo].[Sys_Module] DROP CONSTRAINT [PK_SYS_MODULE];
 
 
 GO
-PRINT N'正在创建 [dbo].[Sys_Organize].[F_Layers].[MS_Description]...';
+PRINT N'正在删除 [dbo].[PK_SYS_MODULEBUTTON]...';
 
 
 GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'层次', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Organize', @level2type = N'COLUMN', @level2name = N'F_Layers';
+ALTER TABLE [dbo].[Sys_ModuleButton] DROP CONSTRAINT [PK_SYS_MODULEBUTTON];
 
 
 GO
-PRINT N'正在创建 [dbo].[Sys_Organize].[F_EnCode].[MS_Description]...';
+PRINT N'正在删除 [dbo].[PK_SYS_MODULEFORM]...';
 
 
 GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'编码', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Organize', @level2type = N'COLUMN', @level2name = N'F_EnCode';
+ALTER TABLE [dbo].[Sys_ModuleForm] DROP CONSTRAINT [PK_SYS_MODULEFORM];
 
 
 GO
-PRINT N'正在创建 [dbo].[Sys_Organize].[F_FullName].[MS_Description]...';
+PRINT N'正在删除 [dbo].[PK_SYS_MODULEFORMINSTANCE]...';
 
 
 GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'名称', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Organize', @level2type = N'COLUMN', @level2name = N'F_FullName';
+ALTER TABLE [dbo].[Sys_ModuleFormInstance] DROP CONSTRAINT [PK_SYS_MODULEFORMINSTANCE];
 
 
 GO
-PRINT N'正在创建 [dbo].[Sys_Organize].[F_ShortName].[MS_Description]...';
+PRINT N'正在删除 [dbo].[PK_SYS_ORGANIZE]...';
 
 
 GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'简称', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Organize', @level2type = N'COLUMN', @level2name = N'F_ShortName';
+ALTER TABLE [dbo].[Sys_Organize] DROP CONSTRAINT [PK_SYS_ORGANIZE];
 
 
 GO
-PRINT N'正在创建 [dbo].[Sys_Organize].[F_CategoryId].[MS_Description]...';
+PRINT N'正在删除 [dbo].[PK_SYS_ROLE]...';
 
 
 GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'分类', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Organize', @level2type = N'COLUMN', @level2name = N'F_CategoryId';
+ALTER TABLE [dbo].[Sys_Role] DROP CONSTRAINT [PK_SYS_ROLE];
 
 
 GO
-PRINT N'正在创建 [dbo].[Sys_Organize].[F_ManagerId].[MS_Description]...';
+PRINT N'正在删除 [dbo].[PK_SYS_ROLEAUTHORIZE]...';
 
 
 GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'负责人', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Organize', @level2type = N'COLUMN', @level2name = N'F_ManagerId';
+ALTER TABLE [dbo].[Sys_RoleAuthorize] DROP CONSTRAINT [PK_SYS_ROLEAUTHORIZE];
 
 
 GO
-PRINT N'正在创建 [dbo].[Sys_Organize].[F_TelePhone].[MS_Description]...';
+PRINT N'正在删除 [dbo].[PK_SYS_USER]...';
 
 
 GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'电话', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Organize', @level2type = N'COLUMN', @level2name = N'F_TelePhone';
+ALTER TABLE [dbo].[Sys_User] DROP CONSTRAINT [PK_SYS_USER];
 
 
 GO
-PRINT N'正在创建 [dbo].[Sys_Organize].[F_MobilePhone].[MS_Description]...';
+PRINT N'正在删除 [dbo].[PK_SYS_USERLOGON]...';
 
 
 GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'手机', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Organize', @level2type = N'COLUMN', @level2name = N'F_MobilePhone';
+ALTER TABLE [dbo].[Sys_UserLogOn] DROP CONSTRAINT [PK_SYS_USERLOGON];
 
 
 GO
-PRINT N'正在创建 [dbo].[Sys_Organize].[F_WeChat].[MS_Description]...';
+PRINT N'正在改变 [dbo].[Sys_Area]...';
 
 
 GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'微信', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Organize', @level2type = N'COLUMN', @level2name = N'F_WeChat';
+ALTER TABLE [dbo].[Sys_Area] ALTER COLUMN [F_CreatorUserId] NVARCHAR (50) NULL;
 
+ALTER TABLE [dbo].[Sys_Area] ALTER COLUMN [F_DeleteUserId] NVARCHAR (50) NULL;
 
-GO
-PRINT N'正在创建 [dbo].[Sys_Organize].[F_Fax].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'传真', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Organize', @level2type = N'COLUMN', @level2name = N'F_Fax';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Organize].[F_Email].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'邮箱', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Organize', @level2type = N'COLUMN', @level2name = N'F_Email';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Organize].[F_AreaId].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'归属区域', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Organize', @level2type = N'COLUMN', @level2name = N'F_AreaId';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Organize].[F_Address].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'联系地址', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Organize', @level2type = N'COLUMN', @level2name = N'F_Address';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Organize].[F_AllowEdit].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'允许编辑', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Organize', @level2type = N'COLUMN', @level2name = N'F_AllowEdit';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Organize].[F_AllowDelete].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'允许删除', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Organize', @level2type = N'COLUMN', @level2name = N'F_AllowDelete';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Organize].[F_SortCode].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'排序码', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Organize', @level2type = N'COLUMN', @level2name = N'F_SortCode';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Organize].[F_DeleteMark].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'删除标志', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Organize', @level2type = N'COLUMN', @level2name = N'F_DeleteMark';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Organize].[F_EnabledMark].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'有效标志', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Organize', @level2type = N'COLUMN', @level2name = N'F_EnabledMark';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Organize].[F_Description].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'描述', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Organize', @level2type = N'COLUMN', @level2name = N'F_Description';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Organize].[F_CreatorTime].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'创建时间', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Organize', @level2type = N'COLUMN', @level2name = N'F_CreatorTime';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Organize].[F_CreatorUserId].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'创建用户', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Organize', @level2type = N'COLUMN', @level2name = N'F_CreatorUserId';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Organize].[F_LastModifyTime].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'最后修改时间', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Organize', @level2type = N'COLUMN', @level2name = N'F_LastModifyTime';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Organize].[F_LastModifyUserId].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'最后修改用户', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Organize', @level2type = N'COLUMN', @level2name = N'F_LastModifyUserId';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Organize].[F_DeleteTime].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'删除时间', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Organize', @level2type = N'COLUMN', @level2name = N'F_DeleteTime';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Organize].[F_DeleteUserId].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'删除用户', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Organize', @level2type = N'COLUMN', @level2name = N'F_DeleteUserId';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Role].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'角色表', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Role';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Role].[F_Id].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'角色主键', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Role', @level2type = N'COLUMN', @level2name = N'F_Id';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Role].[F_OrganizeId].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'组织主键', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Role', @level2type = N'COLUMN', @level2name = N'F_OrganizeId';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Role].[F_Category].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'分类:1-角色2-岗位', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Role', @level2type = N'COLUMN', @level2name = N'F_Category';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Role].[F_EnCode].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'编号', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Role', @level2type = N'COLUMN', @level2name = N'F_EnCode';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Role].[F_FullName].[MS_Description]...';
-
+ALTER TABLE [dbo].[Sys_Area] ALTER COLUMN [F_Description] NVARCHAR (500) NULL;
 
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'名称', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Role', @level2type = N'COLUMN', @level2name = N'F_FullName';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Role].[F_Type].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'类型', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Role', @level2type = N'COLUMN', @level2name = N'F_Type';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Role].[F_AllowEdit].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'允许编辑', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Role', @level2type = N'COLUMN', @level2name = N'F_AllowEdit';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Role].[F_AllowDelete].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'允许删除', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Role', @level2type = N'COLUMN', @level2name = N'F_AllowDelete';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Role].[F_SortCode].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'排序码', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Role', @level2type = N'COLUMN', @level2name = N'F_SortCode';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Role].[F_DeleteMark].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'删除标志', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Role', @level2type = N'COLUMN', @level2name = N'F_DeleteMark';
-
+ALTER TABLE [dbo].[Sys_Area] ALTER COLUMN [F_EnCode] NVARCHAR (50) NULL;
 
-GO
-PRINT N'正在创建 [dbo].[Sys_Role].[F_EnabledMark].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'有效标志', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Role', @level2type = N'COLUMN', @level2name = N'F_EnabledMark';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Role].[F_Description].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'描述', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Role', @level2type = N'COLUMN', @level2name = N'F_Description';
-
-
-GO
-PRINT N'正在创建 [dbo].[Sys_Role].[F_CreatorTime].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'创建时间', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Role', @level2type = N'COLUMN', @level2name = N'F_CreatorTime';
+ALTER TABLE [dbo].[Sys_Area] ALTER COLUMN [F_FullName] NVARCHAR (50) NULL;
 
+ALTER TABLE [dbo].[Sys_Area] ALTER COLUMN [F_Id] NVARCHAR (50) NOT NULL;
 
-GO
-PRINT N'正在创建 [dbo].[Sys_Role].[F_CreatorUserId].[MS_Description]...';
-
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'创建用户', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Role', @level2type = N'COLUMN', @level2name = N'F_CreatorUserId';
+ALTER TABLE [dbo].[Sys_Area] ALTER COLUMN [F_LastModifyUserId] NVARCHAR (50) NULL;
 
+ALTER TABLE [dbo].[Sys_Area] ALTER COLUMN [F_ParentId] NVARCHAR (50) NULL;
 
-GO
-PRINT N'正在创建 [dbo].[Sys_Role].[F_LastModifyTime].[MS_Description]...';
+ALTER TABLE [dbo].[Sys_Area] ALTER COLUMN [F_SimpleSpelling] NVARCHAR (50) NULL;
 
 
 GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'最后修改时间', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Role', @level2type = N'COLUMN', @level2name = N'F_LastModifyTime';
+PRINT N'正在创建 [dbo].[PK_SYS_AREA]...';
 
 
 GO
-PRINT N'正在创建 [dbo].[Sys_Role].[F_LastModifyUserId].[MS_Description]...';
+ALTER TABLE [dbo].[Sys_Area]
+    ADD CONSTRAINT [PK_SYS_AREA] PRIMARY KEY NONCLUSTERED ([F_Id] ASC) ON [PRIMARY];
 
 
 GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'最后修改用户', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Role', @level2type = N'COLUMN', @level2name = N'F_LastModifyUserId';
+PRINT N'正在改变 [dbo].[Sys_DbBackup]...';
 
 
 GO
-PRINT N'正在创建 [dbo].[Sys_Role].[F_DeleteTime].[MS_Description]...';
-
+ALTER TABLE [dbo].[Sys_DbBackup] ALTER COLUMN [F_BackupType] NVARCHAR (50) NULL;
 
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'删除时间', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Role', @level2type = N'COLUMN', @level2name = N'F_DeleteTime';
+ALTER TABLE [dbo].[Sys_DbBackup] ALTER COLUMN [F_CreatorUserId] NVARCHAR (50) NULL;
 
+ALTER TABLE [dbo].[Sys_DbBackup] ALTER COLUMN [F_DbName] NVARCHAR (50) NULL;
 
-GO
-PRINT N'正在创建 [dbo].[Sys_Role].[F_DeleteUserId].[MS_Description]...';
+ALTER TABLE [dbo].[Sys_DbBackup] ALTER COLUMN [F_DeleteUserId] NVARCHAR (500) NULL;
 
+ALTER TABLE [dbo].[Sys_DbBackup] ALTER COLUMN [F_Description] NVARCHAR (500) NULL;
 
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'删除用户', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_Role', @level2type = N'COLUMN', @level2name = N'F_DeleteUserId';
+ALTER TABLE [dbo].[Sys_DbBackup] ALTER COLUMN [F_FileName] NVARCHAR (50) NULL;
 
+ALTER TABLE [dbo].[Sys_DbBackup] ALTER COLUMN [F_FilePath] NVARCHAR (500) NULL;
 
-GO
-PRINT N'正在创建 [dbo].[Sys_RoleAuthorize].[MS_Description]...';
+ALTER TABLE [dbo].[Sys_DbBackup] ALTER COLUMN [F_FileSize] NVARCHAR (50) NULL;
 
+ALTER TABLE [dbo].[Sys_DbBackup] ALTER COLUMN [F_Id] NVARCHAR (50) NOT NULL;
 
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'角色授权表', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_RoleAuthorize';
+ALTER TABLE [dbo].[Sys_DbBackup] ALTER COLUMN [F_LastModifyUserId] NVARCHAR (50) NULL;
 
 
 GO
-PRINT N'正在创建 [dbo].[Sys_RoleAuthorize].[F_Id].[MS_Description]...';
+PRINT N'正在创建 [dbo].[PK_SYS_DBBACKUP]...';
 
 
 GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'角色授权主键', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_RoleAuthorize', @level2type = N'COLUMN', @level2name = N'F_Id';
+ALTER TABLE [dbo].[Sys_DbBackup]
+    ADD CONSTRAINT [PK_SYS_DBBACKUP] PRIMARY KEY NONCLUSTERED ([F_Id] ASC) ON [PRIMARY];
 
 
 GO
-PRINT N'正在创建 [dbo].[Sys_RoleAuthorize].[F_ItemType].[MS_Description]...';
+PRINT N'正在改变 [dbo].[Sys_FilterIP]...';
 
 
 GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'项目类型1-模块2-按钮3-列表', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_RoleAuthorize', @level2type = N'COLUMN', @level2name = N'F_ItemType';
+ALTER TABLE [dbo].[Sys_FilterIP] ALTER COLUMN [F_CreatorUserId] NVARCHAR (50) NULL;
 
+ALTER TABLE [dbo].[Sys_FilterIP] ALTER COLUMN [F_DeleteUserId] NVARCHAR (500) NULL;
 
-GO
-PRINT N'正在创建 [dbo].[Sys_RoleAuthorize].[F_ItemId].[MS_Description]...';
+ALTER TABLE [dbo].[Sys_FilterIP] ALTER COLUMN [F_Description] NVARCHAR (500) NULL;
 
+ALTER TABLE [dbo].[Sys_FilterIP] ALTER COLUMN [F_EndIP] NVARCHAR (50) NULL;
 
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'项目主键', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_RoleAuthorize', @level2type = N'COLUMN', @level2name = N'F_ItemId';
+ALTER TABLE [dbo].[Sys_FilterIP] ALTER COLUMN [F_Id] NVARCHAR (50) NOT NULL;
 
+ALTER TABLE [dbo].[Sys_FilterIP] ALTER COLUMN [F_LastModifyUserId] NVARCHAR (50) NULL;
 
-GO
-PRINT N'正在创建 [dbo].[Sys_RoleAuthorize].[F_ObjectType].[MS_Description]...';
+ALTER TABLE [dbo].[Sys_FilterIP] ALTER COLUMN [F_StartIP] NVARCHAR (50) NULL;
 
 
 GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'对象分类1-角色2-部门-3用户', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_RoleAuthorize', @level2type = N'COLUMN', @level2name = N'F_ObjectType';
+PRINT N'正在创建 [dbo].[PK_SYS_FILTERIP]...';
 
 
 GO
-PRINT N'正在创建 [dbo].[Sys_RoleAuthorize].[F_ObjectId].[MS_Description]...';
+ALTER TABLE [dbo].[Sys_FilterIP]
+    ADD CONSTRAINT [PK_SYS_FILTERIP] PRIMARY KEY NONCLUSTERED ([F_Id] ASC) ON [PRIMARY];
 
 
 GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'对象主键', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_RoleAuthorize', @level2type = N'COLUMN', @level2name = N'F_ObjectId';
+PRINT N'正在改变 [dbo].[Sys_Items]...';
 
 
 GO
-PRINT N'正在创建 [dbo].[Sys_RoleAuthorize].[F_SortCode].[MS_Description]...';
+ALTER TABLE [dbo].[Sys_Items] ALTER COLUMN [F_CreatorUserId] NVARCHAR (50) NULL;
 
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'排序码', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_RoleAuthorize', @level2type = N'COLUMN', @level2name = N'F_SortCode';
+ALTER TABLE [dbo].[Sys_Items] ALTER COLUMN [F_DeleteUserId] NVARCHAR (50) NULL;
 
+ALTER TABLE [dbo].[Sys_Items] ALTER COLUMN [F_Description] NVARCHAR (500) NULL;
 
-GO
-PRINT N'正在创建 [dbo].[Sys_RoleAuthorize].[F_CreatorTime].[MS_Description]...';
+ALTER TABLE [dbo].[Sys_Items] ALTER COLUMN [F_EnCode] NVARCHAR (50) NULL;
 
+ALTER TABLE [dbo].[Sys_Items] ALTER COLUMN [F_FullName] NVARCHAR (50) NULL;
 
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'创建时间', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_RoleAuthorize', @level2type = N'COLUMN', @level2name = N'F_CreatorTime';
+ALTER TABLE [dbo].[Sys_Items] ALTER COLUMN [F_Id] NVARCHAR (50) NOT NULL;
 
+ALTER TABLE [dbo].[Sys_Items] ALTER COLUMN [F_LastModifyUserId] NVARCHAR (50) NULL;
 
-GO
-PRINT N'正在创建 [dbo].[Sys_RoleAuthorize].[F_CreatorUserId].[MS_Description]...';
+ALTER TABLE [dbo].[Sys_Items] ALTER COLUMN [F_ParentId] NVARCHAR (50) NULL;
 
 
 GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'创建用户', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_RoleAuthorize', @level2type = N'COLUMN', @level2name = N'F_CreatorUserId';
+PRINT N'正在创建 [dbo].[PK_SYS_ITEMS]...';
 
 
 GO
-PRINT N'正在创建 [dbo].[Sys_User].[MS_Description]...';
+ALTER TABLE [dbo].[Sys_Items]
+    ADD CONSTRAINT [PK_SYS_ITEMS] PRIMARY KEY NONCLUSTERED ([F_Id] ASC) ON [PRIMARY];
 
 
 GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'用户表', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_User';
+PRINT N'正在改变 [dbo].[Sys_ItemsDetail]...';
 
 
 GO
-PRINT N'正在创建 [dbo].[Sys_User].[F_Id].[MS_Description]...';
-
+ALTER TABLE [dbo].[Sys_ItemsDetail] ALTER COLUMN [F_CreatorUserId] NVARCHAR (50) NULL;
 
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'用户主键', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_User', @level2type = N'COLUMN', @level2name = N'F_Id';
+ALTER TABLE [dbo].[Sys_ItemsDetail] ALTER COLUMN [F_DeleteUserId] NVARCHAR (50) NULL;
 
+ALTER TABLE [dbo].[Sys_ItemsDetail] ALTER COLUMN [F_Description] NVARCHAR (500) NULL;
 
-GO
-PRINT N'正在创建 [dbo].[Sys_User].[F_Account].[MS_Description]...';
+ALTER TABLE [dbo].[Sys_ItemsDetail] ALTER COLUMN [F_Id] NVARCHAR (50) NOT NULL;
 
+ALTER TABLE [dbo].[Sys_ItemsDetail] ALTER COLUMN [F_ItemCode] NVARCHAR (50) NULL;
 
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'账户', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_User', @level2type = N'COLUMN', @level2name = N'F_Account';
+ALTER TABLE [dbo].[Sys_ItemsDetail] ALTER COLUMN [F_ItemId] NVARCHAR (50) NULL;
 
+ALTER TABLE [dbo].[Sys_ItemsDetail] ALTER COLUMN [F_ItemName] NVARCHAR (50) NULL;
 
-GO
-PRINT N'正在创建 [dbo].[Sys_User].[F_RealName].[MS_Description]...';
+ALTER TABLE [dbo].[Sys_ItemsDetail] ALTER COLUMN [F_LastModifyUserId] NVARCHAR (50) NULL;
 
+ALTER TABLE [dbo].[Sys_ItemsDetail] ALTER COLUMN [F_ParentId] NVARCHAR (50) NULL;
 
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'姓名', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_User', @level2type = N'COLUMN', @level2name = N'F_RealName';
+ALTER TABLE [dbo].[Sys_ItemsDetail] ALTER COLUMN [F_SimpleSpelling] NVARCHAR (500) NULL;
 
 
 GO
-PRINT N'正在创建 [dbo].[Sys_User].[F_NickName].[MS_Description]...';
+PRINT N'正在创建 [dbo].[PK_SYS_ITEMDETAIL]...';
 
 
 GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'呢称', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_User', @level2type = N'COLUMN', @level2name = N'F_NickName';
+ALTER TABLE [dbo].[Sys_ItemsDetail]
+    ADD CONSTRAINT [PK_SYS_ITEMDETAIL] PRIMARY KEY NONCLUSTERED ([F_Id] ASC) ON [PRIMARY];
 
 
 GO
-PRINT N'正在创建 [dbo].[Sys_User].[F_HeadIcon].[MS_Description]...';
+PRINT N'正在改变 [dbo].[Sys_Log]...';
 
 
 GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'头像', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_User', @level2type = N'COLUMN', @level2name = N'F_HeadIcon';
-
+ALTER TABLE [dbo].[Sys_Log] ALTER COLUMN [F_Account] NVARCHAR (50) NULL;
 
-GO
-PRINT N'正在创建 [dbo].[Sys_User].[F_Gender].[MS_Description]...';
+ALTER TABLE [dbo].[Sys_Log] ALTER COLUMN [F_CreatorUserId] NVARCHAR (50) NULL;
 
+ALTER TABLE [dbo].[Sys_Log] ALTER COLUMN [F_Description] NVARCHAR (500) NULL;
 
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'性别', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_User', @level2type = N'COLUMN', @level2name = N'F_Gender';
+ALTER TABLE [dbo].[Sys_Log] ALTER COLUMN [F_Id] NVARCHAR (50) NOT NULL;
 
+ALTER TABLE [dbo].[Sys_Log] ALTER COLUMN [F_IPAddress] NVARCHAR (50) NULL;
 
-GO
-PRINT N'正在创建 [dbo].[Sys_User].[F_Birthday].[MS_Description]...';
+ALTER TABLE [dbo].[Sys_Log] ALTER COLUMN [F_IPAddressName] NVARCHAR (50) NULL;
 
+ALTER TABLE [dbo].[Sys_Log] ALTER COLUMN [F_ModuleId] NVARCHAR (50) NULL;
 
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'生日', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_User', @level2type = N'COLUMN', @level2name = N'F_Birthday';
+ALTER TABLE [dbo].[Sys_Log] ALTER COLUMN [F_ModuleName] NVARCHAR (50) NULL;
 
+ALTER TABLE [dbo].[Sys_Log] ALTER COLUMN [F_NickName] NVARCHAR (50) NULL;
 
-GO
-PRINT N'正在创建 [dbo].[Sys_User].[F_MobilePhone].[MS_Description]...';
+ALTER TABLE [dbo].[Sys_Log] ALTER COLUMN [F_Type] NVARCHAR (50) NULL;
 
 
 GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'手机', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_User', @level2type = N'COLUMN', @level2name = N'F_MobilePhone';
+PRINT N'正在创建 [dbo].[PK_SYS_LOG]...';
 
 
 GO
-PRINT N'正在创建 [dbo].[Sys_User].[F_Email].[MS_Description]...';
+ALTER TABLE [dbo].[Sys_Log]
+    ADD CONSTRAINT [PK_SYS_LOG] PRIMARY KEY NONCLUSTERED ([F_Id] ASC) ON [PRIMARY];
 
 
 GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'邮箱', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_User', @level2type = N'COLUMN', @level2name = N'F_Email';
+PRINT N'正在改变 [dbo].[Sys_Module]...';
 
 
 GO
-PRINT N'正在创建 [dbo].[Sys_User].[F_WeChat].[MS_Description]...';
+ALTER TABLE [dbo].[Sys_Module] ALTER COLUMN [F_CreatorUserId] NVARCHAR (50) NULL;
 
+ALTER TABLE [dbo].[Sys_Module] ALTER COLUMN [F_DeleteUserId] NVARCHAR (50) NULL;
 
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'微信', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_User', @level2type = N'COLUMN', @level2name = N'F_WeChat';
+ALTER TABLE [dbo].[Sys_Module] ALTER COLUMN [F_Description] NVARCHAR (500) NULL;
 
+ALTER TABLE [dbo].[Sys_Module] ALTER COLUMN [F_EnCode] NVARCHAR (50) NULL;
 
-GO
-PRINT N'正在创建 [dbo].[Sys_User].[F_ManagerId].[MS_Description]...';
+ALTER TABLE [dbo].[Sys_Module] ALTER COLUMN [F_FullName] NVARCHAR (50) NULL;
 
+ALTER TABLE [dbo].[Sys_Module] ALTER COLUMN [F_Icon] NVARCHAR (50) NULL;
 
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'主管主键', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_User', @level2type = N'COLUMN', @level2name = N'F_ManagerId';
+ALTER TABLE [dbo].[Sys_Module] ALTER COLUMN [F_Id] NVARCHAR (50) NOT NULL;
 
+ALTER TABLE [dbo].[Sys_Module] ALTER COLUMN [F_LastModifyUserId] NVARCHAR (50) NULL;
 
-GO
-PRINT N'正在创建 [dbo].[Sys_User].[F_SecurityLevel].[MS_Description]...';
+ALTER TABLE [dbo].[Sys_Module] ALTER COLUMN [F_ParentId] NVARCHAR (50) NULL;
 
+ALTER TABLE [dbo].[Sys_Module] ALTER COLUMN [F_Target] NVARCHAR (50) NULL;
 
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'安全级别', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_User', @level2type = N'COLUMN', @level2name = N'F_SecurityLevel';
+ALTER TABLE [dbo].[Sys_Module] ALTER COLUMN [F_UrlAddress] NVARCHAR (500) NULL;
 
 
 GO
-PRINT N'正在创建 [dbo].[Sys_User].[F_Signature].[MS_Description]...';
+PRINT N'正在创建 [dbo].[PK_SYS_MODULE]...';
 
 
 GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'个性签名', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_User', @level2type = N'COLUMN', @level2name = N'F_Signature';
+ALTER TABLE [dbo].[Sys_Module]
+    ADD CONSTRAINT [PK_SYS_MODULE] PRIMARY KEY NONCLUSTERED ([F_Id] ASC) ON [PRIMARY];
 
 
 GO
-PRINT N'正在创建 [dbo].[Sys_User].[F_OrganizeId].[MS_Description]...';
+PRINT N'正在改变 [dbo].[Sys_ModuleButton]...';
 
 
 GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'组织主键', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_User', @level2type = N'COLUMN', @level2name = N'F_OrganizeId';
+ALTER TABLE [dbo].[Sys_ModuleButton] ALTER COLUMN [F_CreatorUserId] NVARCHAR (50) NULL;
 
+ALTER TABLE [dbo].[Sys_ModuleButton] ALTER COLUMN [F_DeleteUserId] NVARCHAR (50) NULL;
 
-GO
-PRINT N'正在创建 [dbo].[Sys_User].[F_DepartmentId].[MS_Description]...';
-
+ALTER TABLE [dbo].[Sys_ModuleButton] ALTER COLUMN [F_Description] NVARCHAR (500) NULL;
 
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'部门主键', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_User', @level2type = N'COLUMN', @level2name = N'F_DepartmentId';
+ALTER TABLE [dbo].[Sys_ModuleButton] ALTER COLUMN [F_EnCode] NVARCHAR (50) NULL;
 
+ALTER TABLE [dbo].[Sys_ModuleButton] ALTER COLUMN [F_FullName] NVARCHAR (50) NULL;
 
-GO
-PRINT N'正在创建 [dbo].[Sys_User].[F_RoleId].[MS_Description]...';
+ALTER TABLE [dbo].[Sys_ModuleButton] ALTER COLUMN [F_Icon] NVARCHAR (50) NULL;
 
+ALTER TABLE [dbo].[Sys_ModuleButton] ALTER COLUMN [F_Id] NVARCHAR (50) NOT NULL;
 
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'角色主键', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_User', @level2type = N'COLUMN', @level2name = N'F_RoleId';
+ALTER TABLE [dbo].[Sys_ModuleButton] ALTER COLUMN [F_JsEvent] NVARCHAR (50) NULL;
 
+ALTER TABLE [dbo].[Sys_ModuleButton] ALTER COLUMN [F_LastModifyUserId] NVARCHAR (50) NULL;
 
-GO
-PRINT N'正在创建 [dbo].[Sys_User].[F_DutyId].[MS_Description]...';
+ALTER TABLE [dbo].[Sys_ModuleButton] ALTER COLUMN [F_ModuleId] NVARCHAR (50) NULL;
 
+ALTER TABLE [dbo].[Sys_ModuleButton] ALTER COLUMN [F_ParentId] NVARCHAR (50) NULL;
 
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'岗位主键', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_User', @level2type = N'COLUMN', @level2name = N'F_DutyId';
+ALTER TABLE [dbo].[Sys_ModuleButton] ALTER COLUMN [F_UrlAddress] NVARCHAR (500) NULL;
 
 
 GO
-PRINT N'正在创建 [dbo].[Sys_User].[F_IsAdministrator].[MS_Description]...';
+PRINT N'正在创建 [dbo].[PK_SYS_MODULEBUTTON]...';
 
 
 GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'是否管理员', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_User', @level2type = N'COLUMN', @level2name = N'F_IsAdministrator';
+ALTER TABLE [dbo].[Sys_ModuleButton]
+    ADD CONSTRAINT [PK_SYS_MODULEBUTTON] PRIMARY KEY NONCLUSTERED ([F_Id] ASC) ON [PRIMARY];
 
 
 GO
-PRINT N'正在创建 [dbo].[Sys_User].[F_SortCode].[MS_Description]...';
+PRINT N'正在改变 [dbo].[Sys_ModuleForm]...';
 
 
 GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'排序码', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_User', @level2type = N'COLUMN', @level2name = N'F_SortCode';
+ALTER TABLE [dbo].[Sys_ModuleForm] ALTER COLUMN [F_CreatorUserId] NVARCHAR (50) NULL;
 
+ALTER TABLE [dbo].[Sys_ModuleForm] ALTER COLUMN [F_DeleteUserId] NVARCHAR (500) NULL;
 
-GO
-PRINT N'正在创建 [dbo].[Sys_User].[F_DeleteMark].[MS_Description]...';
+ALTER TABLE [dbo].[Sys_ModuleForm] ALTER COLUMN [F_Description] NVARCHAR (500) NULL;
 
+ALTER TABLE [dbo].[Sys_ModuleForm] ALTER COLUMN [F_EnCode] NVARCHAR (50) NULL;
 
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'删除标志', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_User', @level2type = N'COLUMN', @level2name = N'F_DeleteMark';
+ALTER TABLE [dbo].[Sys_ModuleForm] ALTER COLUMN [F_FormJson] NVARCHAR (MAX) NULL;
 
+ALTER TABLE [dbo].[Sys_ModuleForm] ALTER COLUMN [F_FullName] NVARCHAR (50) NULL;
 
-GO
-PRINT N'正在创建 [dbo].[Sys_User].[F_EnabledMark].[MS_Description]...';
+ALTER TABLE [dbo].[Sys_ModuleForm] ALTER COLUMN [F_Id] NVARCHAR (50) NOT NULL;
 
+ALTER TABLE [dbo].[Sys_ModuleForm] ALTER COLUMN [F_LastModifyUserId] NVARCHAR (50) NULL;
 
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'有效标志', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_User', @level2type = N'COLUMN', @level2name = N'F_EnabledMark';
+ALTER TABLE [dbo].[Sys_ModuleForm] ALTER COLUMN [F_ModuleId] NVARCHAR (50) NULL;
 
 
 GO
-PRINT N'正在创建 [dbo].[Sys_User].[F_Description].[MS_Description]...';
+PRINT N'正在创建 [dbo].[PK_SYS_MODULEFORM]...';
 
 
 GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'描述', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_User', @level2type = N'COLUMN', @level2name = N'F_Description';
+ALTER TABLE [dbo].[Sys_ModuleForm]
+    ADD CONSTRAINT [PK_SYS_MODULEFORM] PRIMARY KEY NONCLUSTERED ([F_Id] ASC) ON [PRIMARY];
 
 
 GO
-PRINT N'正在创建 [dbo].[Sys_User].[F_CreatorTime].[MS_Description]...';
+PRINT N'正在改变 [dbo].[Sys_ModuleFormInstance]...';
 
 
 GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'创建时间', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_User', @level2type = N'COLUMN', @level2name = N'F_CreatorTime';
+ALTER TABLE [dbo].[Sys_ModuleFormInstance] ALTER COLUMN [F_CreatorUserId] NVARCHAR (50) NULL;
 
+ALTER TABLE [dbo].[Sys_ModuleFormInstance] ALTER COLUMN [F_FormId] NVARCHAR (50) NOT NULL;
 
-GO
-PRINT N'正在创建 [dbo].[Sys_User].[F_CreatorUserId].[MS_Description]...';
+ALTER TABLE [dbo].[Sys_ModuleFormInstance] ALTER COLUMN [F_Id] NVARCHAR (50) NOT NULL;
 
+ALTER TABLE [dbo].[Sys_ModuleFormInstance] ALTER COLUMN [F_InstanceJson] NVARCHAR (MAX) NULL;
 
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'创建用户', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_User', @level2type = N'COLUMN', @level2name = N'F_CreatorUserId';
+ALTER TABLE [dbo].[Sys_ModuleFormInstance] ALTER COLUMN [F_ObjectId] NVARCHAR (50) NULL;
 
 
 GO
-PRINT N'正在创建 [dbo].[Sys_User].[F_LastModifyTime].[MS_Description]...';
+PRINT N'正在创建 [dbo].[PK_SYS_MODULEFORMINSTANCE]...';
 
 
 GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'最后修改时间', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_User', @level2type = N'COLUMN', @level2name = N'F_LastModifyTime';
+ALTER TABLE [dbo].[Sys_ModuleFormInstance]
+    ADD CONSTRAINT [PK_SYS_MODULEFORMINSTANCE] PRIMARY KEY NONCLUSTERED ([F_Id] ASC) ON [PRIMARY];
 
 
 GO
-PRINT N'正在创建 [dbo].[Sys_User].[F_LastModifyUserId].[MS_Description]...';
+PRINT N'正在改变 [dbo].[Sys_Organize]...';
 
 
 GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'最后修改用户', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_User', @level2type = N'COLUMN', @level2name = N'F_LastModifyUserId';
-
+ALTER TABLE [dbo].[Sys_Organize] ALTER COLUMN [F_Address] NVARCHAR (500) NULL;
 
-GO
-PRINT N'正在创建 [dbo].[Sys_User].[F_DeleteTime].[MS_Description]...';
+ALTER TABLE [dbo].[Sys_Organize] ALTER COLUMN [F_AreaId] NVARCHAR (50) NULL;
 
+ALTER TABLE [dbo].[Sys_Organize] ALTER COLUMN [F_CategoryId] NVARCHAR (50) NULL;
 
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'删除时间', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_User', @level2type = N'COLUMN', @level2name = N'F_DeleteTime';
+ALTER TABLE [dbo].[Sys_Organize] ALTER COLUMN [F_CreatorUserId] NVARCHAR (50) NULL;
 
+ALTER TABLE [dbo].[Sys_Organize] ALTER COLUMN [F_DeleteUserId] NVARCHAR (500) NULL;
 
-GO
-PRINT N'正在创建 [dbo].[Sys_User].[F_DeleteUserId].[MS_Description]...';
+ALTER TABLE [dbo].[Sys_Organize] ALTER COLUMN [F_Description] NVARCHAR (500) NULL;
 
+ALTER TABLE [dbo].[Sys_Organize] ALTER COLUMN [F_Email] NVARCHAR (50) NULL;
 
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'删除用户', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_User', @level2type = N'COLUMN', @level2name = N'F_DeleteUserId';
+ALTER TABLE [dbo].[Sys_Organize] ALTER COLUMN [F_EnCode] NVARCHAR (50) NULL;
 
+ALTER TABLE [dbo].[Sys_Organize] ALTER COLUMN [F_Fax] NVARCHAR (20) NULL;
 
-GO
-PRINT N'正在创建 [dbo].[Sys_UserLogOn].[MS_Description]...';
+ALTER TABLE [dbo].[Sys_Organize] ALTER COLUMN [F_FullName] NVARCHAR (50) NULL;
 
+ALTER TABLE [dbo].[Sys_Organize] ALTER COLUMN [F_Id] NVARCHAR (50) NOT NULL;
 
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'用户登录信息表', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_UserLogOn';
+ALTER TABLE [dbo].[Sys_Organize] ALTER COLUMN [F_LastModifyUserId] NVARCHAR (50) NULL;
 
+ALTER TABLE [dbo].[Sys_Organize] ALTER COLUMN [F_ManagerId] NVARCHAR (50) NULL;
 
-GO
-PRINT N'正在创建 [dbo].[Sys_UserLogOn].[F_Id].[MS_Description]...';
+ALTER TABLE [dbo].[Sys_Organize] ALTER COLUMN [F_MobilePhone] NVARCHAR (20) NULL;
 
+ALTER TABLE [dbo].[Sys_Organize] ALTER COLUMN [F_ParentId] NVARCHAR (50) NULL;
 
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'用户登录主键', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_UserLogOn', @level2type = N'COLUMN', @level2name = N'F_Id';
+ALTER TABLE [dbo].[Sys_Organize] ALTER COLUMN [F_ShortName] NVARCHAR (50) NULL;
 
+ALTER TABLE [dbo].[Sys_Organize] ALTER COLUMN [F_TelePhone] NVARCHAR (20) NULL;
 
-GO
-PRINT N'正在创建 [dbo].[Sys_UserLogOn].[F_UserId].[MS_Description]...';
+ALTER TABLE [dbo].[Sys_Organize] ALTER COLUMN [F_WeChat] NVARCHAR (50) NULL;
 
 
 GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'用户主键', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_UserLogOn', @level2type = N'COLUMN', @level2name = N'F_UserId';
+PRINT N'正在创建 [dbo].[PK_SYS_ORGANIZE]...';
 
 
 GO
-PRINT N'正在创建 [dbo].[Sys_UserLogOn].[F_UserPassword].[MS_Description]...';
+ALTER TABLE [dbo].[Sys_Organize]
+    ADD CONSTRAINT [PK_SYS_ORGANIZE] PRIMARY KEY NONCLUSTERED ([F_Id] ASC) ON [PRIMARY];
 
 
 GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'用户密码', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_UserLogOn', @level2type = N'COLUMN', @level2name = N'F_UserPassword';
+PRINT N'正在改变 [dbo].[Sys_Role]...';
 
 
 GO
-PRINT N'正在创建 [dbo].[Sys_UserLogOn].[F_UserSecretkey].[MS_Description]...';
+ALTER TABLE [dbo].[Sys_Role] ALTER COLUMN [F_CreatorUserId] NVARCHAR (50) NULL;
 
+ALTER TABLE [dbo].[Sys_Role] ALTER COLUMN [F_DeleteUserId] NVARCHAR (500) NULL;
 
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'用户秘钥', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_UserLogOn', @level2type = N'COLUMN', @level2name = N'F_UserSecretkey';
+ALTER TABLE [dbo].[Sys_Role] ALTER COLUMN [F_Description] NVARCHAR (500) NULL;
 
+ALTER TABLE [dbo].[Sys_Role] ALTER COLUMN [F_EnCode] NVARCHAR (50) NULL;
 
-GO
-PRINT N'正在创建 [dbo].[Sys_UserLogOn].[F_AllowStartTime].[MS_Description]...';
+ALTER TABLE [dbo].[Sys_Role] ALTER COLUMN [F_FullName] NVARCHAR (50) NULL;
 
+ALTER TABLE [dbo].[Sys_Role] ALTER COLUMN [F_Id] NVARCHAR (50) NOT NULL;
 
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'允许登录时间开始', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_UserLogOn', @level2type = N'COLUMN', @level2name = N'F_AllowStartTime';
+ALTER TABLE [dbo].[Sys_Role] ALTER COLUMN [F_LastModifyUserId] NVARCHAR (50) NULL;
 
+ALTER TABLE [dbo].[Sys_Role] ALTER COLUMN [F_OrganizeId] NVARCHAR (50) NULL;
 
-GO
-PRINT N'正在创建 [dbo].[Sys_UserLogOn].[F_AllowEndTime].[MS_Description]...';
+ALTER TABLE [dbo].[Sys_Role] ALTER COLUMN [F_Type] NVARCHAR (50) NULL;
 
 
 GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'允许登录时间结束', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_UserLogOn', @level2type = N'COLUMN', @level2name = N'F_AllowEndTime';
+PRINT N'正在创建 [dbo].[PK_SYS_ROLE]...';
 
 
 GO
-PRINT N'正在创建 [dbo].[Sys_UserLogOn].[F_LockStartDate].[MS_Description]...';
+ALTER TABLE [dbo].[Sys_Role]
+    ADD CONSTRAINT [PK_SYS_ROLE] PRIMARY KEY NONCLUSTERED ([F_Id] ASC) ON [PRIMARY];
 
 
 GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'暂停用户开始日期', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_UserLogOn', @level2type = N'COLUMN', @level2name = N'F_LockStartDate';
+PRINT N'正在改变 [dbo].[Sys_RoleAuthorize]...';
 
 
 GO
-PRINT N'正在创建 [dbo].[Sys_UserLogOn].[F_LockEndDate].[MS_Description]...';
-
+ALTER TABLE [dbo].[Sys_RoleAuthorize] ALTER COLUMN [F_CreatorUserId] NVARCHAR (50) NULL;
 
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'暂停用户结束日期', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_UserLogOn', @level2type = N'COLUMN', @level2name = N'F_LockEndDate';
+ALTER TABLE [dbo].[Sys_RoleAuthorize] ALTER COLUMN [F_Id] NVARCHAR (50) NOT NULL;
 
+ALTER TABLE [dbo].[Sys_RoleAuthorize] ALTER COLUMN [F_ItemId] NVARCHAR (50) NULL;
 
-GO
-PRINT N'正在创建 [dbo].[Sys_UserLogOn].[F_FirstVisitTime].[MS_Description]...';
+ALTER TABLE [dbo].[Sys_RoleAuthorize] ALTER COLUMN [F_ObjectId] NVARCHAR (50) NULL;
 
 
 GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'第一次访问时间', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_UserLogOn', @level2type = N'COLUMN', @level2name = N'F_FirstVisitTime';
+PRINT N'正在创建 [dbo].[PK_SYS_ROLEAUTHORIZE]...';
 
 
 GO
-PRINT N'正在创建 [dbo].[Sys_UserLogOn].[F_PreviousVisitTime].[MS_Description]...';
+ALTER TABLE [dbo].[Sys_RoleAuthorize]
+    ADD CONSTRAINT [PK_SYS_ROLEAUTHORIZE] PRIMARY KEY NONCLUSTERED ([F_Id] ASC) ON [PRIMARY];
 
 
 GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'上一次访问时间', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_UserLogOn', @level2type = N'COLUMN', @level2name = N'F_PreviousVisitTime';
+PRINT N'正在改变 [dbo].[Sys_User]...';
 
 
 GO
-PRINT N'正在创建 [dbo].[Sys_UserLogOn].[F_LastVisitTime].[MS_Description]...';
+ALTER TABLE [dbo].[Sys_User] ALTER COLUMN [F_Account] NVARCHAR (50) NULL;
 
-
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'最后访问时间', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_UserLogOn', @level2type = N'COLUMN', @level2name = N'F_LastVisitTime';
+ALTER TABLE [dbo].[Sys_User] ALTER COLUMN [F_CreatorUserId] NVARCHAR (50) NULL;
 
+ALTER TABLE [dbo].[Sys_User] ALTER COLUMN [F_DeleteUserId] NVARCHAR (500) NULL;
 
-GO
-PRINT N'正在创建 [dbo].[Sys_UserLogOn].[F_ChangePasswordDate].[MS_Description]...';
+ALTER TABLE [dbo].[Sys_User] ALTER COLUMN [F_DepartmentId] NVARCHAR (500) NULL;
 
+ALTER TABLE [dbo].[Sys_User] ALTER COLUMN [F_Description] NVARCHAR (500) NULL;
 
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'最后修改密码日期', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_UserLogOn', @level2type = N'COLUMN', @level2name = N'F_ChangePasswordDate';
+ALTER TABLE [dbo].[Sys_User] ALTER COLUMN [F_DutyId] NVARCHAR (500) NULL;
 
+ALTER TABLE [dbo].[Sys_User] ALTER COLUMN [F_Email] NVARCHAR (50) NULL;
 
-GO
-PRINT N'正在创建 [dbo].[Sys_UserLogOn].[F_MultiUserLogin].[MS_Description]...';
+ALTER TABLE [dbo].[Sys_User] ALTER COLUMN [F_HeadIcon] NVARCHAR (50) NULL;
 
+ALTER TABLE [dbo].[Sys_User] ALTER COLUMN [F_Id] NVARCHAR (50) NOT NULL;
 
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'允许同时有多用户登录', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_UserLogOn', @level2type = N'COLUMN', @level2name = N'F_MultiUserLogin';
+ALTER TABLE [dbo].[Sys_User] ALTER COLUMN [F_LastModifyUserId] NVARCHAR (50) NULL;
 
+ALTER TABLE [dbo].[Sys_User] ALTER COLUMN [F_ManagerId] NVARCHAR (50) NULL;
 
-GO
-PRINT N'正在创建 [dbo].[Sys_UserLogOn].[F_LogOnCount].[MS_Description]...';
+ALTER TABLE [dbo].[Sys_User] ALTER COLUMN [F_MobilePhone] NVARCHAR (20) NULL;
 
+ALTER TABLE [dbo].[Sys_User] ALTER COLUMN [F_NickName] NVARCHAR (50) NULL;
 
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'登录次数', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_UserLogOn', @level2type = N'COLUMN', @level2name = N'F_LogOnCount';
+ALTER TABLE [dbo].[Sys_User] ALTER COLUMN [F_OrganizeId] NVARCHAR (50) NULL;
 
+ALTER TABLE [dbo].[Sys_User] ALTER COLUMN [F_RealName] NVARCHAR (50) NULL;
 
-GO
-PRINT N'正在创建 [dbo].[Sys_UserLogOn].[F_UserOnLine].[MS_Description]...';
+ALTER TABLE [dbo].[Sys_User] ALTER COLUMN [F_RoleId] NVARCHAR (500) NULL;
 
+ALTER TABLE [dbo].[Sys_User] ALTER COLUMN [F_Signature] NVARCHAR (500) NULL;
 
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'在线状态', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_UserLogOn', @level2type = N'COLUMN', @level2name = N'F_UserOnLine';
+ALTER TABLE [dbo].[Sys_User] ALTER COLUMN [F_WeChat] NVARCHAR (50) NULL;
 
 
 GO
-PRINT N'正在创建 [dbo].[Sys_UserLogOn].[F_Question].[MS_Description]...';
+PRINT N'正在创建 [dbo].[PK_SYS_USER]...';
 
 
 GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'密码提示问题', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_UserLogOn', @level2type = N'COLUMN', @level2name = N'F_Question';
+ALTER TABLE [dbo].[Sys_User]
+    ADD CONSTRAINT [PK_SYS_USER] PRIMARY KEY NONCLUSTERED ([F_Id] ASC) ON [PRIMARY];
 
 
 GO
-PRINT N'正在创建 [dbo].[Sys_UserLogOn].[F_AnswerQuestion].[MS_Description]...';
+PRINT N'正在改变 [dbo].[Sys_UserLogOn]...';
 
 
 GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'密码提示答案', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_UserLogOn', @level2type = N'COLUMN', @level2name = N'F_AnswerQuestion';
+ALTER TABLE [dbo].[Sys_UserLogOn] ALTER COLUMN [F_AnswerQuestion] NVARCHAR (500) NULL;
 
+ALTER TABLE [dbo].[Sys_UserLogOn] ALTER COLUMN [F_Id] NVARCHAR (50) NOT NULL;
 
-GO
-PRINT N'正在创建 [dbo].[Sys_UserLogOn].[F_CheckIPAddress].[MS_Description]...';
-
+ALTER TABLE [dbo].[Sys_UserLogOn] ALTER COLUMN [F_Language] NVARCHAR (50) NULL;
 
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'是否访问限制', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_UserLogOn', @level2type = N'COLUMN', @level2name = N'F_CheckIPAddress';
+ALTER TABLE [dbo].[Sys_UserLogOn] ALTER COLUMN [F_Question] NVARCHAR (50) NULL;
 
+ALTER TABLE [dbo].[Sys_UserLogOn] ALTER COLUMN [F_Theme] NVARCHAR (50) NULL;
 
-GO
-PRINT N'正在创建 [dbo].[Sys_UserLogOn].[F_Language].[MS_Description]...';
+ALTER TABLE [dbo].[Sys_UserLogOn] ALTER COLUMN [F_UserId] NVARCHAR (50) NULL;
 
+ALTER TABLE [dbo].[Sys_UserLogOn] ALTER COLUMN [F_UserPassword] NVARCHAR (50) NULL;
 
-GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'系统语言', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_UserLogOn', @level2type = N'COLUMN', @level2name = N'F_Language';
+ALTER TABLE [dbo].[Sys_UserLogOn] ALTER COLUMN [F_UserSecretkey] NVARCHAR (50) NULL;
 
 
 GO
-PRINT N'正在创建 [dbo].[Sys_UserLogOn].[F_Theme].[MS_Description]...';
+PRINT N'正在创建 [dbo].[PK_SYS_USERLOGON]...';
 
 
 GO
-EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'系统样式', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Sys_UserLogOn', @level2type = N'COLUMN', @level2name = N'F_Theme';
+ALTER TABLE [dbo].[Sys_UserLogOn]
+    ADD CONSTRAINT [PK_SYS_USERLOGON] PRIMARY KEY NONCLUSTERED ([F_Id] ASC) ON [PRIMARY];
 
 
 GO
@@ -6072,24 +3922,6 @@ INSERT [dbo].[Sys_Area] ([F_Id], [F_ParentId], [F_Layers], [F_EnCode], [F_FullNa
 GO
 
 GO
-
-GO
-DECLARE @VarDecimalSupported AS BIT;
-
-SELECT @VarDecimalSupported = 0;
-
-IF ((ServerProperty(N'EngineEdition') = 3)
-    AND (((@@microsoftversion / power(2, 24) = 9)
-          AND (@@microsoftversion & 0xffff >= 3024))
-         OR ((@@microsoftversion / power(2, 24) = 10)
-             AND (@@microsoftversion & 0xffff >= 1600))))
-    SELECT @VarDecimalSupported = 1;
-
-IF (@VarDecimalSupported > 0)
-    BEGIN
-        EXECUTE sp_db_vardecimal_storage_format N'$(DatabaseName)', 'ON';
-    END
-
 
 GO
 PRINT N'更新完成。';

@@ -1,17 +1,17 @@
 ﻿CREATE TABLE [dbo].[Sys_Log](
-	[F_Id] [varchar](50) NOT NULL,
+	[F_Id] [nvarchar](50) NOT NULL,
 	[F_Date] [datetime] NULL,
-	[F_Account] [varchar](50) NULL,
-	[F_NickName] [varchar](50) NULL,
-	[F_Type] [varchar](50) NULL,
-	[F_IPAddress] [varchar](50) NULL,
-	[F_IPAddressName] [varchar](50) NULL,
-	[F_ModuleId] [varchar](50) NULL,
-	[F_ModuleName] [varchar](50) NULL,
+	[F_Account] [nvarchar](50) NULL,
+	[F_NickName] [nvarchar](50) NULL,
+	[F_Type] [nvarchar](50) NULL,
+	[F_IPAddress] [nvarchar](50) NULL,
+	[F_IPAddressName] [nvarchar](50) NULL,
+	[F_ModuleId] [nvarchar](50) NULL,
+	[F_ModuleName] [nvarchar](50) NULL,
 	[F_Result] [bit] NULL,
-	[F_Description] [varchar](500) NULL,
+	[F_Description] [nvarchar](500) NULL,
 	[F_CreatorTime] [datetime] NULL,
-	[F_CreatorUserId] [varchar](50) NULL,
+	[F_CreatorUserId] [nvarchar](50) NULL,
  CONSTRAINT [PK_SYS_LOG] PRIMARY KEY NONCLUSTERED 
 (
 	[F_Id] ASC

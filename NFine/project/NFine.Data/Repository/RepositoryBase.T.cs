@@ -34,18 +34,18 @@ namespace NFine.Data
         }
         public int Update(TEntity entity)
         {
-            dbcontext.Set<TEntity>().Attach(entity);
+            dbcontext.Set<TEntity>().Attach(entity); //附加上实体
             PropertyInfo[] props = entity.GetType().GetProperties();
             foreach (PropertyInfo prop in props)
             {
-                if (prop.GetValue(entity, null) != null)
+                if (prop.GetValue(entity, null) != null) //如果参数值不为空
                 {
-                    if (prop.GetValue(entity, null).ToString() == "&nbsp;")
-                        dbcontext.Entry(entity).Property(prop.Name).CurrentValue = null;
-                    dbcontext.Entry(entity).Property(prop.Name).IsModified = true;
+                    if (prop.GetValue(entity, null).ToString() == "&nbsp;")//如果参数值转为字符串后为空格?!
+                        dbcontext.Entry(entity).Property(prop.Name).CurrentValue = null; //转为空引用
+                    dbcontext.Entry(entity).Property(prop.Name).IsModified = true; //将此属性设置为已修改
                 }
             }
-            return dbcontext.SaveChanges();
+            return dbcontext.SaveChanges(); //提交保存
         }
         public int Delete(TEntity entity)
         {

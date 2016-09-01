@@ -30,10 +30,12 @@ namespace NFine.Data
             var typesToRegister = asm.GetTypes()
             .Where(type => !String.IsNullOrEmpty(type.Namespace))
             .Where(type => type.BaseType != null && type.BaseType.IsGenericType && type.BaseType.GetGenericTypeDefinition() == typeof(EntityTypeConfiguration<>));
+            //找到所有关系组件
+
             foreach (var type in typesToRegister)
             {
-                dynamic configurationInstance = Activator.CreateInstance(type);
-                modelBuilder.Configurations.Add(configurationInstance);
+                dynamic configurationInstance = Activator.CreateInstance(type); //创建注册关系组件
+                modelBuilder.Configurations.Add(configurationInstance); //注册所有关系
             }
             base.OnModelCreating(modelBuilder);
         }

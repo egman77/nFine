@@ -13,6 +13,9 @@ using System.Collections.Generic;
 
 namespace NFine.Application.SystemManage
 {
+    /// <summary>
+    /// 用户管理(相当于业务逻辑层)
+    /// </summary>
     public class UserApp
     {
         private IUserRepository service = new UserRepository();

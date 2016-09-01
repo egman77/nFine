@@ -12,6 +12,10 @@ using NFine.Repository.SystemManage;
 
 namespace NFine.Repository.SystemManage
 {
+
+    /// <summary>
+    /// 用户仓库管理(相当于数据访问层)
+    /// </summary>
     public class UserRepository : RepositoryBase<UserEntity>, IUserRepository
     {
         public void DeleteForm(string keyValue)

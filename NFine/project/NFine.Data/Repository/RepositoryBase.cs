@@ -18,6 +18,9 @@ using System.Text.RegularExpressions;
 
 namespace NFine.Data
 {
+    /// <summary>
+    /// 仓储实现
+    /// </summary>
     public class RepositoryBase : IRepositoryBase, IDisposable
     {
         private NFineDbContext dbcontext = new NFineDbContext();

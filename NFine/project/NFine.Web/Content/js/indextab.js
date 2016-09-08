@@ -107,7 +107,7 @@
             return false;
         },
         addTab: function () {
-            $(".open>.dropdown-menu").hide();
+            $("#header-nav>ul>li.open").removeClass("open");
             var dataId = $(this).attr('data-id');
             if (dataId != "") {
                 top.$.cookie('nfine_currentmoduleid', dataId, { path: "/" });

@@ -16,6 +16,10 @@ using System.Text.RegularExpressions;
 
 namespace NFine.Data
 {
+    /// <summary>
+    /// 仓储实现
+    /// </summary>
+    /// <typeparam name="TEntity"></typeparam>
     public class RepositoryBase<TEntity> : IRepositoryBase<TEntity> where TEntity : class,new()
     {
         public NFineDbContext dbcontext = new NFineDbContext();

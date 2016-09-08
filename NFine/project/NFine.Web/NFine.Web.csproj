@@ -20,6 +20,7 @@
     <IISExpressAnonymousAuthentication />
     <IISExpressWindowsAuthentication />
     <IISExpressUseClassicPipelineMode />
+    <UseGlobalApplicationHostFile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -160,6 +161,7 @@
     <Content Include="Content\fonts\weathericons-regular-webfont.svg" />
     <Content Include="Content\img\ajax-loader.gif" />
     <Content Include="Content\img\alipay.jpg" />
+    <Content Include="Content\img\alipayimg.png" />
     <Content Include="Content\img\button_pm_close.png" />
     <Content Include="Content\img\cy-reward-title-bg.jpg" />
     <Content Include="Content\img\loading.gif" />
@@ -187,6 +189,7 @@
     <Content Include="Content\img\samples\scarlett-300.jpg" />
     <Content Include="Content\img\signet.gif" />
     <Content Include="Content\img\wechat.jpg" />
+    <Content Include="Content\img\weipayimg.png" />
     <Content Include="Content\img\weixin_nfine.png" />
     <Content Include="Content\js\bootstrap\bootstrap.js" />
     <Content Include="Content\js\bootstrap\bootstrap.min.css" />
@@ -414,7 +417,9 @@
     <Content Include="Configs\system.config" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="Configs\database.config" />
+    <Content Include="Configs\database.config">
+      <SubType>Designer</SubType>
+    </Content>
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\NFine.Application\NFine.Application.csproj">
@@ -556,7 +561,9 @@
   <ItemGroup>
     <Content Include="Areas\ReportManage\Views\Web.config" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <Folder Include="Areas\ReportManage\Views\Echarts\" />
+  </ItemGroup>
   <ItemGroup>
     <Content Include="Areas\ReportManage\Views\Highcharts\Sample1.cshtml" />
     <Content Include="Areas\ReportManage\Views\Highcharts\Sample10.cshtml" />
